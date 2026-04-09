@@ -1,0 +1,16 @@
+# GROBID server for grobif.py (grobid-client). Default URL: http://localhost:8070
+# Usage: docker compose -f docker-compose.grobid.yml up -d
+# Override host: export GROBID_SERVER=http://127.0.0.1:8070
+#
+# If FastAPI runs inside Compose on the same network, use e.g.:
+#   GROBID_SERVER=http://grobid:8070
+#
+# Image is amd64-only; on Apple Silicon (arm64) Docker runs it via emulation.
+# platform pins that behavior so Compose does not warn about implicit platform.
+
+services:
+  grobid:
+    image: lfoppiano/grobid:0.8.2
+    platform: linux/amd64
+    ports:
+      - "8070:8070"

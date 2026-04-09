@@ -1,0 +1,20 @@
+# Optional local parsers: nlm-ingestor (llmsherpha) + GROBID (grobif).
+# Usage: docker compose -f docker-compose.parsers.yml up -d
+#
+# Ports: 5010 → nlm-ingestor, 8070 → GROBID
+# llmsherpha default: http://127.0.0.1:5010/api/parseDocument?renderFormat=all
+# grobif default:     http://localhost:8070 (GROBID_SERVER)
+#
+# GROBID image is amd64; on Apple Silicon, platform forces explicit emulation.
+
+services:
+  nlm-ingestor:
+    image: ghcr.io/nlmatics/nlm-ingestor:latest
+    ports:
+      - "5010:5001"
+
+  grobid:
+    image: lfoppiano/grobid:0.8.2
+    platform: linux/amd64
+    ports:
+      - "8070:8070"

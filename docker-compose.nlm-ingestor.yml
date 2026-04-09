@@ -1,0 +1,9 @@
+# LLM Sherpa layout parser (nlm-ingestor) for llmsherpha.py / LLMSHERPA_API_URL default.
+# Usage: docker compose -f docker-compose.nlm-ingestor.yml up -d
+# Then:  http://127.0.0.1:5010/api/parseDocument?renderFormat=all
+
+services:
+  nlm-ingestor:
+    image: ghcr.io/nlmatics/nlm-ingestor:latest
+    ports:
+      - "5010:5001"

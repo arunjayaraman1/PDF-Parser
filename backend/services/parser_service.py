@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from models.schemas import PageResult, ParseRequest, ParseResponse
+from models.schemas import PageResult, ParseRequest, ParseResponse, ParserRunMeta
 from utils.file_handler import get_file_path
 
 logger = logging.getLogger(__name__)
@@ -19,24 +19,28 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 
 PARSER_FILES = {
-    "pdfplumber": "pdfplumber.py",
-    "docling": "docling.py",
-    "doctr": "doctr.py",
-    "camelot": "Camelot.py",
-    "pdfminer": "pdfminer_runner.py",
-    "marker": "marker.py",
+    # --- main_parsers/ (primary, ranked parsers) ---
+    "pdfium":     "main_parsers/pdfium.py",
+    "llmsherpha": "main_parsers/llmsherpha.py",
+    "llmsherpa":  "main_parsers/llmsherpha.py",
+    "marker":     "main_parsers/marker.py",
+    "docling":    "main_parsers/docling.py",
+    "doctr":      "main_parsers/doctr.py",
+    # --- other parsers kept for backwards compatibility ---
+    "pdfplumber":   "pdfplumber.py",
+    "camelot":      "Camelot.py",
+    "pdfminer":     "pdfminer_runner.py",
     "unstructured": "Unstructured.py",
-    "mineru": "MinorU.py",
-    "grobif": "grobif.py",
+    "mineru":       "MinorU.py",
+    "grobif":       "grobif.py",
     "layoutparser": "layoutparser.py",
-    "paddleocr": "paddle.py",
-    "easyocr": "easyocr.py",
-    "tesseract": "tesseract.py",
-    "rapidocr": "rapidocr.py",
-    "suryaocr": "suryaocr.py",
-    "tabula": "tabula.py",
-    "liteparse": "liteparse.py",
-    "llmsherpha": "llmsherpha.py",
+    "paddleocr":    "paddle.py",
+    "easyocr":      "easyocr.py",
+    "tesseract":    "tesseract.py",
+    "rapidocr":     "rapidocr.py",
+    "suryaocr":     "suryaocr.py",
+    "tabula":       "tabula.py",
+    "liteparse":    "liteparse.py",
 }
 
 PAGE_HEADER_RE = re.compile(r"^\s*---\s*Page\s+(\d+)\s*/\s*\d+\s*---\s*$", re.IGNORECASE)
@@ -135,23 +139,27 @@ def _run_parser_script(
     pdf_path: Path,
     work_dir: Path,
     mineru_profile: MineruProfile | None = None,
-) -> list[PageResult]:
+) -> tuple[list[PageResult], ParserRunMeta]:
     script_name = PARSER_FILES.get(parser_name.lower())
     if not script_name:
-        return [PageResult(page=1, text=f"[ERROR] Unknown parser: {parser_name}")]
+        return (
+            [PageResult(page=1, text=f"[ERROR] Unknown parser: {parser_name}")],
+            ParserRunMeta(execution_time_ms=0, output_files=[]),
+        )
 
     script_path = ROOT_DIR / script_name
     if not script_path.exists():
-        return [
-            PageResult(page=1, text=f"[ERROR] Parser script not found: {script_name}")
-        ]
+        return (
+            [PageResult(page=1, text=f"[ERROR] Parser script not found: {script_name}")],
+            ParserRunMeta(execution_time_ms=0, output_files=[]),
+        )
 
     logger.info(f"Running parser {parser_name} on {pdf_path.name}")
 
     run_env = os.environ.copy()
-    timeout_sec = 300
+    timeout_sec = 2000
     if parser_name.lower() == "mineru":
-        timeout_sec = 900
+        timeout_sec = 900  
         if mineru_profile:
             overrides = _mineru_profile_env(mineru_profile)
             run_env.update(overrides)
@@ -161,6 +169,7 @@ def _run_parser_script(
                 overrides,
             )
 
+    started_wall = time.perf_counter()
     try:
         work_pdf = work_dir / pdf_path.name
         shutil.copy2(pdf_path, work_pdf)
@@ -174,8 +183,18 @@ def _run_parser_script(
             run_env["MINERU_SOURCE"] = str(work_pdf.resolve())
         if parser_name.lower() == "paddleocr":
             run_env["PADDLEOCR_SOURCE"] = str(work_pdf.resolve())
-        if parser_name.lower() == "llmsherpha":
+        if parser_name.lower() in ("llmsherpha", "llmsherpa"):
             run_env["LLMSHERPA_SOURCE"] = str(work_pdf.resolve())
+        if parser_name.lower() == "pdfium":
+            run_env["PDFIUM_SOURCE"] = str(work_pdf.resolve())
+        if parser_name.lower() == "camelot":
+            run_env["CAMELOT_SOURCE"] = str(work_pdf.resolve())
+        if parser_name.lower() == "marker":
+            run_env["MARKER_SOURCE"] = str(work_pdf.resolve())
+        if parser_name.lower() == "docling":
+            run_env["DOCLING_SOURCE"] = str(work_pdf.resolve())
+        if parser_name.lower() == "doctr":
+            run_env["DOCTR_SOURCE"] = str(work_pdf.resolve())
 
         started_at = time.time()
         result = subprocess.run(
@@ -189,7 +208,11 @@ def _run_parser_script(
 
         if result.returncode != 0:
             logger.error(f"Parser {parser_name} failed: {result.stderr[:500]}")
-            return [PageResult(page=1, text=f"[ERROR] {result.stderr[:1000]}")]
+            elapsed_ms = max(0, int((time.perf_counter() - started_wall) * 1000))
+            return (
+                [PageResult(page=1, text=f"[ERROR] {result.stderr[:1000]}")],
+                ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+            )
 
         extracted_files = _discover_extracted_outputs(
             work_dir=work_dir,
@@ -199,11 +222,15 @@ def _run_parser_script(
         )
 
         if not extracted_files:
-            return [
-                PageResult(
-                    page=1, text=f"[WARNING] No output file generated by {parser_name}"
-                )
-            ]
+            elapsed_ms = max(0, int((time.perf_counter() - started_wall) * 1000))
+            return (
+                [
+                    PageResult(
+                        page=1, text=f"[WARNING] No output file generated by {parser_name}"
+                    )
+                ],
+                ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+            )
 
         content = extracted_files[0].read_text(encoding="utf-8", errors="replace")
 
@@ -230,20 +257,36 @@ def _run_parser_script(
             # Fallback for parsers that don't emit page headers.
             pages = [PageResult(page=1, text=content.strip())]
 
+        elapsed_ms = max(0, int((time.perf_counter() - started_wall) * 1000))
+        output_files = [
+            str(p.relative_to(work_dir)) if p.is_relative_to(work_dir) else p.name
+            for p in extracted_files
+        ]
         logger.info(f"Parser {parser_name} completed with {len(pages)} page entries")
-        return pages
+        return (
+            pages,
+            ParserRunMeta(execution_time_ms=elapsed_ms, output_files=output_files),
+        )
 
     except subprocess.TimeoutExpired:
         logger.error(f"Parser {parser_name} timed out")
-        return [
-            PageResult(
-                page=1,
-                text=f"[ERROR] Parser timed out after {timeout_sec // 60} minutes",
-            )
-        ]
+        elapsed_ms = max(0, int((time.perf_counter() - started_wall) * 1000))
+        return (
+            [
+                PageResult(
+                    page=1,
+                    text=f"[ERROR] Parser timed out after {timeout_sec // 60} minutes",
+                )
+            ],
+            ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+        )
     except Exception as e:
         logger.error(f"Parser {parser_name} error: {e}")
-        return [PageResult(page=1, text=f"[ERROR] {str(e)}")]
+        elapsed_ms = max(0, int((time.perf_counter() - started_wall) * 1000))
+        return (
+            [PageResult(page=1, text=f"[ERROR] {str(e)}")],
+            ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+        )
 
 
 async def parse_pdf(request: ParseRequest) -> ParseResponse:
@@ -254,6 +297,7 @@ async def parse_pdf(request: ParseRequest) -> ParseResponse:
         raise ValueError(f"File not found for file_id: {request.file_id}")
 
     parser_results: dict[str, list[PageResult]] = {}
+    parser_meta: dict[str, ParserRunMeta] = {}
 
     with tempfile.TemporaryDirectory() as work_dir:
         work_path = Path(work_dir)
@@ -266,17 +310,22 @@ async def parse_pdf(request: ParseRequest) -> ParseResponse:
                     if parser_name.lower() == "mineru"
                     else None
                 )
-                results = _run_parser_script(
+                results, meta = _run_parser_script(
                     parser_name, pdf_path, work_path, mineru_profile=profile
                 )
                 parser_results[parser_name] = results
+                parser_meta[parser_name] = meta
             except Exception as e:
                 logger.error(f"Error running parser {parser_name}: {e}")
                 parser_results[parser_name] = [
                     PageResult(page=1, text=f"[ERROR] {str(e)}")
                 ]
+                parser_meta[parser_name] = ParserRunMeta(
+                    execution_time_ms=0,
+                    output_files=[],
+                )
 
-    return ParseResponse(parsers=parser_results)
+    return ParseResponse(parsers=parser_results, parser_meta=parser_meta)
 
 
 def available_parsers() -> list[str]:

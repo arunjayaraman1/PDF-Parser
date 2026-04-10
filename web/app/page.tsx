@@ -10,22 +10,11 @@ import {
   AlertCircle,
   RotateCcw,
   Hexagon,
-  PanelLeftOpen,
-  PanelLeftClose,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
 
 export default function Home() {
   const { error, setError, isLoading, reset, parseResults } = useAppStore();
-  const hasResults = Object.keys(parseResults).length > 0;
-  const [showControls, setShowControls] = useState(true);
-
-  useEffect(() => {
-    if (hasResults) {
-      setShowControls(false);
-    }
-  }, [hasResults]);
 
   return (
     <main className="min-h-screen bg-zinc-950 relative">
@@ -96,61 +85,57 @@ export default function Home() {
             </motion.div>
           )}
 
-          <div className={showControls ? "grid gap-8 xl:grid-cols-[420px_1fr]" : "grid gap-8"}>
-            {showControls && (
-              <div className="space-y-6">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20">
-                    <span className="text-sm font-semibold text-indigo-400">1</span>
-                  </div>
-                  <h2 className="text-lg font-semibold text-zinc-100">
-                    Upload & Describe
-                  </h2>
+          <div className="space-y-6">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20">
+                  <span className="text-sm font-semibold text-indigo-400">1</span>
                 </div>
-                <UploadSection />
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20">
-                    <span className="text-sm font-semibold text-cyan-400">2</span>
-                  </div>
-                  <h2 className="text-lg font-semibold text-zinc-100">
-                    Select Parsers
-                  </h2>
-                </div>
-                <ParserSelector />
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-              >
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20">
-                    <span className="text-sm font-semibold text-emerald-400">3</span>
-                  </div>
-                  <h2 className="text-lg font-semibold text-zinc-100">
-                    Run Comparison
-                  </h2>
-                </div>
-                <ParseButton />
-              </motion.div>
+                <h2 className="text-lg font-semibold text-zinc-100">
+                  Upload & Describe
+                </h2>
               </div>
-            )}
+              <UploadSection />
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20">
+                  <span className="text-sm font-semibold text-cyan-400">2</span>
+                </div>
+                <h2 className="text-lg font-semibold text-zinc-100">
+                  Select Parsers
+                </h2>
+              </div>
+              <ParserSelector />
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20">
+                  <span className="text-sm font-semibold text-emerald-400">3</span>
+                </div>
+                <h2 className="text-lg font-semibold text-zinc-100">
+                  Run Comparison
+                </h2>
+              </div>
+              <ParseButton />
+            </motion.div>
 
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -158,32 +143,11 @@ export default function Home() {
               transition={{ delay: 0.4 }}
               className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
             >
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                  <h2 className="text-lg font-semibold text-zinc-100">
-                    Comparison View
-                  </h2>
-                </div>
-                {hasResults && (
-                  <button
-                    onClick={() => setShowControls((v) => !v)}
-                    className="flex items-center gap-2 px-3 py-2 text-xs font-medium text-zinc-300 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800/60 rounded-lg transition-all duration-200"
-                    title={showControls ? "Hide controls" : "Show controls"}
-                  >
-                    {showControls ? (
-                      <>
-                        <PanelLeftClose className="w-4 h-4" />
-                        Hide controls
-                      </>
-                    ) : (
-                      <>
-                        <PanelLeftOpen className="w-4 h-4" />
-                        Show controls
-                      </>
-                    )}
-                  </button>
-                )}
+              <div className="flex items-center gap-3 mb-6">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <h2 className="text-lg font-semibold text-zinc-100">
+                  Comparison View
+                </h2>
               </div>
               <SyncScrollContainer />
             </motion.div>

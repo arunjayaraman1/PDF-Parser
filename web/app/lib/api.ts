@@ -3,6 +3,8 @@ const API_BASE = "http://localhost:8000";
 export interface ParserRecommendation {
   name: string;
   reason: string;
+  /** 1 = best match; 2–3 = next-best */
+  rank: number;
 }
 
 export interface UploadResponse {
@@ -16,8 +18,14 @@ export interface PageResult {
   text: string;
 }
 
+export interface ParserRunMeta {
+  execution_time_ms: number;
+  output_files: string[];
+}
+
 export interface ParseResponse {
   parsers: Record<string, PageResult[]>;
+  parser_meta: Record<string, ParserRunMeta>;
 }
 
 export async function uploadPdf(file: File): Promise<UploadResponse> {

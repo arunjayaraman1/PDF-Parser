@@ -3,7 +3,17 @@
 import { useAppStore } from "../lib/store";
 import { useEffect, useRef, useState, Suspense, useCallback } from "react";
 import { cn } from "../lib/utils";
-import { FileText, Scroll, ChevronLeft, ChevronRight, Sparkles, Link2, Link2Off } from "lucide-react";
+import {
+  FileText,
+  Scroll,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Link2,
+  Link2Off,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { PdfViewer } from "./PdfViewer";
 import { Column } from "./Column";
 import { ParserOutput } from "./ParserOutput";
@@ -18,9 +28,14 @@ export function SyncScrollContainer() {
   const [activeScroll, setActiveScroll] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [syncEnabled, setSyncEnabled] = useState(true);
+  const [fullViewParser, setFullViewParser] = useState<string | null>(null);
   const isScrolling = useRef(false);
 
   const parsers = Object.keys(parseResults);
+  const effectiveFullViewParser =
+    fullViewParser && parsers.includes(fullViewParser) ? fullViewParser : null;
+  const visibleParsers = effectiveFullViewParser ? [effectiveFullViewParser] : parsers;
+  const inFullView = effectiveFullViewParser !== null;
   
   const getTotalPages = useCallback(() => {
     if (parsers.length === 0) return 0;
@@ -171,29 +186,51 @@ export function SyncScrollContainer() {
             <ChevronRight className="w-4 h-4 text-zinc-300" />
           </motion.button>
         </div>
-        
-        <button
-          onClick={() => setSyncEnabled(!syncEnabled)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-200",
-            syncEnabled 
-              ? "bg-indigo-500/10 border-indigo-500/20" 
-              : "bg-zinc-800/30 border-zinc-700/30"
+
+        <div className="flex items-center gap-2">
+          {inFullView && (
+            <button
+              onClick={() => setFullViewParser(null)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-zinc-800/30 border-zinc-700/30 hover:bg-zinc-700/30 transition-all duration-200"
+            >
+              <Minimize2 className="w-3.5 h-3.5 text-zinc-300" />
+              <span className="text-xs font-medium text-zinc-300">
+                Back to comparison
+              </span>
+            </button>
           )}
-        >
-          {syncEnabled ? (
-            <Link2 className="w-3.5 h-3.5 text-indigo-400" />
-          ) : (
-            <Link2Off className="w-3.5 h-3.5 text-zinc-500" />
-          )}
-          <span className={cn(
-            "text-xs font-medium",
-            syncEnabled ? "text-indigo-300" : "text-zinc-500"
-          )}>
-            {syncEnabled ? "Sync On" : "Sync Off"}
-          </span>
-        </button>
+
+          <button
+            onClick={() => setSyncEnabled(!syncEnabled)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-200",
+              syncEnabled
+                ? "bg-indigo-500/10 border-indigo-500/20"
+                : "bg-zinc-800/30 border-zinc-700/30"
+            )}
+          >
+            {syncEnabled ? (
+              <Link2 className="w-3.5 h-3.5 text-indigo-400" />
+            ) : (
+              <Link2Off className="w-3.5 h-3.5 text-zinc-500" />
+            )}
+            <span
+              className={cn(
+                "text-xs font-medium",
+                syncEnabled ? "text-indigo-300" : "text-zinc-500"
+              )}
+            >
+              {syncEnabled ? "Sync On" : "Sync Off"}
+            </span>
+          </button>
+        </div>
       </div>
+
+      {inFullView && (
+        <div className="text-xs text-zinc-500 px-1">
+          Full view: <span className="text-zinc-300 font-medium">{effectiveFullViewParser}</span>
+        </div>
+      )}
 
       {totalPages > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
@@ -214,7 +251,10 @@ export function SyncScrollContainer() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4 h-[520px]">
+      <div
+        className="grid gap-4 h-[520px]"
+        style={{ gridTemplateColumns: `repeat(${1 + visibleParsers.length}, minmax(0, 1fr))` }}
+      >
         <Column
           title="Original PDF"
           pageCount={numPages}
@@ -243,7 +283,7 @@ export function SyncScrollContainer() {
           </div>
         </Column>
 
-        {parsers.map((parserName, idx) => {
+        {visibleParsers.map((parserName, idx) => {
           const pages = parseResults[parserName] || [];
           const accentColor = ACCENT_COLORS[idx % ACCENT_COLORS.length];
           
@@ -255,6 +295,31 @@ export function SyncScrollContainer() {
               icon={<Sparkles className="w-4 h-4" />}
               accentColor={accentColor}
             >
+              <div className="p-2 border-b border-zinc-800/50">
+                <button
+                  onClick={() =>
+                    setFullViewParser((prev) => (prev === parserName ? null : parserName))
+                  }
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs rounded-lg border transition-all duration-200",
+                    fullViewParser === parserName
+                      ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-300"
+                      : "bg-zinc-800/30 border-zinc-700/30 text-zinc-300 hover:bg-zinc-700/30"
+                  )}
+                >
+                  {fullViewParser === parserName ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5" />
+                      Exit full view
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      Full view
+                    </>
+                  )}
+                </button>
+              </div>
               <ParserOutput pages={pages} currentPage={currentPage} />
             </Column>
           );

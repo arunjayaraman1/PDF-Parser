@@ -1,40 +1,33 @@
 # PDF Parser Comparison System
 
-A full-stack application for uploading PDFs, getting AI-powered parser recommendations, and comparing extraction results side-by-side across **18 parsers**.
+A full-stack application for uploading PDFs, getting **ranked** AI parser recommendations, and comparing extraction results side-by-side.
 
 ## Architecture
 
 ```
-web/          Next.js 16 frontend (React 19, Tailwind, Zustand)
-backend/      FastAPI API (upload, recommend, parse)
-*.py          Root-level parser driver scripts (one per parser)
-parsers/      Shared helper modules (e.g. paddle_ocr_core.py)
+web/              Next.js 16 frontend (React 19, Tailwind, Zustand)
+backend/          FastAPI API (upload, recommend, parse)
+main_parsers/     Primary/ranked parser scripts (pdfium, marker, docling, doctr, llmsherpha)
+*.py              Legacy parser scripts still supported by backend registry
+parsers/          Shared helper modules (e.g. paddle_ocr_core.py)
 ```
 
-The backend runs each parser as a **subprocess** (`python <script>.py` with `cwd` set to a temp directory), discovers `extracted.txt` / `extracted.md` output, and returns page-wise text to the frontend.
+The backend runs each parser as a **subprocess** (`python <script>.py` with `cwd` set to a temp directory), discovers `extracted.txt` / `extracted.md` output, and returns:
+- page-wise text (`parsers`)
+- per-parser run metadata (`parser_meta`) including execution time and output files.
 
-## Supported Parsers
+## Parser Registry (runnable names)
 
-| Parser | OCR | Best for |
-|--------|-----|----------|
-| **pdfplumber** | No | Simple layout text/tables |
-| **pdfminer** | No | Custom pipelines with layout data |
-| **docling** | Yes | RAG / gen-AI all-purpose parsing |
-| **doctr** | Yes | French/multilingual OCR pipelines |
-| **marker** | Yes | LLM-powered markdown conversion |
-| **unstructured** | Yes | RAG preprocessing |
-| **mineru** | Yes | High-quality scientific/Chinese PDFs |
-| **camelot** | No | Table extraction from digital PDFs |
-| **tabula** | No | Table extraction (Java-based) |
-| **easyocr** | Yes | Multilingual OCR pipelines |
-| **paddleocr** | Yes | Asian-language OCR workloads |
-| **tesseract** | Yes | CPU OCR baseline |
-| **rapidocr** | Yes | Fast Chinese/English OCR |
-| **suryaocr** | Yes | Complex OCR + layout workflows |
-| **layoutparser** | Via backend | Custom document layout analysis |
-| **liteparse** | Optional | LLM layout reasoning workflows |
-| **grobif** | No | Academic metadata/citations (GROBID) |
-| **llmsherpa** | Backend | Centralized app parsing (nlm-ingestor) |
+Primary/main parsers:
+- `pdfium`
+- `llmsherpha` (alias supported: `llmsherpa`)
+- `marker`
+- `docling`
+- `doctr`
+
+Legacy/backward-compatible parsers still wired in backend:
+- `pdfplumber`, `camelot`, `pdfminer`, `unstructured`, `mineru`, `grobif`, `layoutparser`,
+  `paddleocr`, `easyocr`, `tesseract`, `rapidocr`, `suryaocr`, `tabula`, `liteparse`
 
 ## Quick Start
 
@@ -97,9 +90,14 @@ Open **http://localhost:3000** in your browser.
 
 1. **Upload** a PDF through the web UI.
 2. **Describe** your use case (e.g. "extract tables from a financial report").
-3. The backend calls **Groq** (LLM) to **recommend** the best 3 parsers from the 18 available, based on your description and each parser's strengths.
+3. The backend calls **Groq** (LLM) to return the **top 3 ranked parsers** with:
+   - `rank` (1 = best match)
+   - use-case-specific reason (fit + tradeoffs)
 4. **Select** parsers (auto-selected from recommendations, or pick manually).
-5. Click **Parse** to run the selected parsers. Results appear as **side-by-side page-wise text**.
+5. Click **Parse** to run selected parsers. Results include:
+   - page-wise extraction text
+   - per-parser execution time + output file list
+6. In Comparison View, each parser column supports **Full view** (2-pane mode: Original PDF + selected parser result).
 
 ## API Endpoints
 
@@ -123,6 +121,36 @@ Open **http://localhost:3000** in your browser.
 ```
 
 `mineru_profile` is optional (`fast` / `balanced` / `quality`) and only applies when `mineru` is selected.
+
+### Recommend response example
+
+```json
+{
+  "parsers": [
+    { "name": "docling", "reason": "Best semantic fit for RAG...", "rank": 1 },
+    { "name": "marker", "reason": "Higher fidelity but slower...", "rank": 2 },
+    { "name": "pdfium", "reason": "Fast fallback for plain text...", "rank": 3 }
+  ]
+}
+```
+
+### Parse response example
+
+```json
+{
+  "parsers": {
+    "docling": [
+      { "page": 1, "text": "..." }
+    ]
+  },
+  "parser_meta": {
+    "docling": {
+      "execution_time_ms": 1432,
+      "output_files": ["sample_extracted/extracted.md"]
+    }
+  }
+}
+```
 
 ## MinerU Run Profiles
 
@@ -159,7 +187,7 @@ GROBID is amd64-only; on Apple Silicon it runs under emulation (`platform: linux
 | Variable | Parser | Description |
 |----------|--------|-------------|
 | `GROBID_SERVER` | grobif | GROBID URL (default `http://localhost:8070`) |
-| `LLMSHERPA_API_URL` | llmsherpa | nlm-ingestor URL (default `http://127.0.0.1:5010/api/parseDocument?renderFormat=all`) |
+| `LLMSHERPA_API_URL` | llmsherpha / llmsherpa | nlm-ingestor URL (default `http://127.0.0.1:5010/api/parseDocument?renderFormat=all`) |
 | `MINERU_BACKEND` | mineru | `pipeline` / `hybrid-auto-engine` etc. |
 | `MINERU_METHOD` | mineru | `auto` / `txt` / `ocr` |
 | `MINERU_SOURCE` | mineru | Path to PDF (auto-set by API) |
@@ -198,7 +226,8 @@ pdf-auto/
 │           └── store.ts           # Zustand state
 ├── parsers/
 │   └── paddle_ocr_core.py        # PaddleOCR pipeline helper
-├── *.py                           # 18 parser driver scripts
+├── main_parsers/                  # primary ranked parser scripts
+├── *.py                           # legacy parser driver scripts
 ├── docker-compose.parsers.yml     # nlm-ingestor + GROBID
 ├── docker-compose.grobid.yml      # GROBID standalone
 ├── docker-compose.nlm-ingestor.yml # nlm-ingestor standalone

@@ -1,0 +1,871 @@
+{
+  "return_dict": {
+    "num_pages": 1,
+    "page_dim": [
+      612.0,
+      792.0
+    ],
+    "result": {
+      "blocks": [
+        {
+          "bbox": [
+            218.55,
+            144.24,
+            411.8,
+            162.24
+          ],
+          "block_class": "cls_0",
+          "block_idx": 0,
+          "level": 0,
+          "page_idx": 0,
+          "sentences": [
+            "Holiday Calendar 2026"
+          ],
+          "tag": "header"
+        },
+        {
+          "bbox": [
+            72.0,
+            179.28,
+            255.95,
+            190.32
+          ],
+          "block_class": "cls_1",
+          "block_idx": 1,
+          "level": 1,
+          "page_idx": 0,
+          "sentences": [
+            "Fixed Public Holidays (*Mandatory)"
+          ],
+          "tag": "header"
+        },
+        {
+          "bbox": [
+            86.8,
+            199.92,
+            499.71000000000004,
+            210.95999999999998
+          ],
+          "block_class": "cls_2",
+          "block_idx": 2,
+          "left": 86.8,
+          "level": 1,
+          "name": "Fixed Public Holidays (*Mandatory)",
+          "page_idx": 0,
+          "table_rows": [
+            {
+              "block_idx": 2,
+              "cells": [
+                {
+                  "cell_value": "Sr No."
+                },
+                {
+                  "cell_value": "Holiday name"
+                },
+                {
+                  "cell_value": "Date"
+                },
+                {
+                  "cell_value": "Day"
+                }
+              ],
+              "type": "table_header"
+            },
+            {
+              "block_idx": 3,
+              "cells": [
+                {
+                  "cell_value": "1"
+                },
+                {
+                  "cell_value": "Republic Day"
+                },
+                {
+                  "cell_value": "26th January 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 4,
+              "cells": [
+                {
+                  "cell_value": "2"
+                },
+                {
+                  "cell_value": "Gandhi Jayanthi"
+                },
+                {
+                  "cell_value": "2nd October 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 5,
+              "cells": [
+                {
+                  "cell_value": "3"
+                },
+                {
+                  "cell_value": "Vijayadasami"
+                },
+                {
+                  "cell_value": "21st October 2026"
+                },
+                {
+                  "cell_value": "Wednesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 6,
+              "cells": [
+                {
+                  "cell_value": "4"
+                },
+                {
+                  "cell_value": "Balipadyami Deepavali"
+                },
+                {
+                  "cell_value": "10th November 2026"
+                },
+                {
+                  "cell_value": "Tuesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 7,
+              "cells": [
+                {
+                  "cell_value": "5"
+                },
+                {
+                  "cell_value": "Christmas Day"
+                },
+                {
+                  "cell_value": "25th December 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 8,
+              "cell_value": "Optional Public Holidays (*any 5)",
+              "col_span": 4,
+              "type": "full_row"
+            },
+            {
+              "block_idx": 9,
+              "cells": [
+                {
+                  "cell_value": "Sr No."
+                },
+                {
+                  "cell_value": "Holiday name"
+                },
+                {
+                  "cell_value": "Date"
+                },
+                {
+                  "cell_value": "Day"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 10,
+              "cells": [
+                {
+                  "cell_value": "1"
+                },
+                {
+                  "cell_value": "New Year Eve"
+                },
+                {
+                  "cell_value": "1st January 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 11,
+              "cells": [
+                {
+                  "cell_value": "2"
+                },
+                {
+                  "cell_value": "Makara Sankranti / Uttarayana"
+                },
+                {
+                  "cell_value": "15th January 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 12,
+              "cells": [
+                {
+                  "cell_value": "3"
+                },
+                {
+                  "cell_value": "Chhatrapati Shivaji Jayanthi"
+                },
+                {
+                  "cell_value": "19th February 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 13,
+              "cells": [
+                {
+                  "cell_value": "4"
+                },
+                {
+                  "cell_value": "Holi"
+                },
+                {
+                  "cell_value": "2nd March 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 14,
+              "cells": [
+                {
+                  "cell_value": "5"
+                },
+                {
+                  "cell_value": "Ugadi / Gudi Padwa"
+                },
+                {
+                  "cell_value": "19th March 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 15,
+              "cells": [
+                {
+                  "cell_value": "6"
+                },
+                {
+                  "cell_value": "Id ul Fitr"
+                },
+                {
+                  "cell_value": "20th March 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 16,
+              "cells": [
+                {
+                  "cell_value": "7"
+                },
+                {
+                  "cell_value": "Ram Navami"
+                },
+                {
+                  "cell_value": "27th March 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 17,
+              "cells": [
+                {
+                  "cell_value": "8"
+                },
+                {
+                  "cell_value": "Mahaveera Jayanthi"
+                },
+                {
+                  "cell_value": "31st March 2026"
+                },
+                {
+                  "cell_value": "Tuesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 18,
+              "cells": [
+                {
+                  "cell_value": "9"
+                },
+                {
+                  "cell_value": "Good Friday"
+                },
+                {
+                  "cell_value": "3rd April 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 19,
+              "cells": [
+                {
+                  "cell_value": "10"
+                },
+                {
+                  "cell_value": "Dr. B.R. Ambedkar Jayanthi"
+                },
+                {
+                  "cell_value": "14th April 2026"
+                },
+                {
+                  "cell_value": "Tuesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 20,
+              "cells": [
+                {
+                  "cell_value": "11"
+                },
+                {
+                  "cell_value": "Basava Jayanthi"
+                },
+                {
+                  "cell_value": "20th April 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 21,
+              "cells": [
+                {
+                  "cell_value": "12"
+                },
+                {
+                  "cell_value": "Labour Day / Buddha Purnima"
+                },
+                {
+                  "cell_value": "1st May 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 22,
+              "cells": [
+                {
+                  "cell_value": "13"
+                },
+                {
+                  "cell_value": "Eid-ul-Adha (Bakrid)"
+                },
+                {
+                  "cell_value": "28th May 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 23,
+              "cells": [
+                {
+                  "cell_value": "14"
+                },
+                {
+                  "cell_value": "Muharram"
+                },
+                {
+                  "cell_value": "26th June 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 24,
+              "cells": [
+                {
+                  "cell_value": "15"
+                },
+                {
+                  "cell_value": "Eid-e-Milad"
+                },
+                {
+                  "cell_value": "26th August 2026"
+                },
+                {
+                  "cell_value": "Wednesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 25,
+              "cells": [
+                {
+                  "cell_value": "16"
+                },
+                {
+                  "cell_value": "Raksha Bandhan"
+                },
+                {
+                  "cell_value": "28th August 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 26,
+              "cells": [
+                {
+                  "cell_value": "17"
+                },
+                {
+                  "cell_value": "Janmashtami"
+                },
+                {
+                  "cell_value": "4th September 2026"
+                },
+                {
+                  "cell_value": "Friday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 27,
+              "cells": [
+                {
+                  "cell_value": "18"
+                },
+                {
+                  "cell_value": "Ganesh Chaturthi"
+                },
+                {
+                  "cell_value": "14th September 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            }
+          ],
+          "tag": "table",
+          "top": 199.92
+        },
+        {
+          "bbox": [
+            133.92,
+            150.24,
+            550.6700000000001,
+            161.28
+          ],
+          "block_class": "cls_3",
+          "block_idx": 28,
+          "left": 133.92,
+          "level": 1,
+          "name": "Fixed Public Holidays (*Mandatory)",
+          "page_idx": 1,
+          "table_rows": [
+            {
+              "block_idx": 28,
+              "cells": [
+                {
+                  "cell_value": ""
+                },
+                {
+                  "cell_value": "Vishwakarma Jayanthi"
+                },
+                {
+                  "cell_value": "17th September 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_header"
+            },
+            {
+              "block_idx": 29,
+              "cells": [
+                {
+                  "cell_value": "20"
+                },
+                {
+                  "cell_value": "Maha Ashtami"
+                },
+                {
+                  "cell_value": "19th October 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 30,
+              "cells": [
+                {
+                  "cell_value": "21"
+                },
+                {
+                  "cell_value": "Maha Navami"
+                },
+                {
+                  "cell_value": "20th October 2026"
+                },
+                {
+                  "cell_value": "Tuesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 31,
+              "cells": [
+                {
+                  "cell_value": "22"
+                },
+                {
+                  "cell_value": "Maharshi Valmiki Jayanthi"
+                },
+                {
+                  "cell_value": "26th October 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 32,
+              "cells": [
+                {
+                  "cell_value": "23"
+                },
+                {
+                  "cell_value": "Chhath Puja"
+                },
+                {
+                  "cell_value": "16th November 2026"
+                },
+                {
+                  "cell_value": "Monday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 33,
+              "cells": [
+                {
+                  "cell_value": "24"
+                },
+                {
+                  "cell_value": "Guru Nanak Jayanthi"
+                },
+                {
+                  "cell_value": "24th November 2026"
+                },
+                {
+                  "cell_value": "Tuesday"
+                }
+              ],
+              "type": "table_data_row"
+            },
+            {
+              "block_idx": 34,
+              "cells": [
+                {
+                  "cell_value": "25"
+                },
+                {
+                  "cell_value": "Christmas Eve"
+                },
+                {
+                  "cell_value": "24th December 2026"
+                },
+                {
+                  "cell_value": "Thursday"
+                }
+              ],
+              "type": "table_data_row"
+            }
+          ],
+          "tag": "table",
+          "top": 150.24
+        },
+        {
+          "bbox": [
+            72.0,
+            320.16,
+            155.74,
+            331.20000000000005
+          ],
+          "block_class": "cls_1",
+          "block_idx": 35,
+          "level": 1,
+          "page_idx": 1,
+          "sentences": [
+            "Important Note:"
+          ],
+          "tag": "header"
+        },
+        {
+          "bbox": [
+            107.3,
+            334.8,
+            526.3,
+            367.91999999999996
+          ],
+          "block_class": "cls_3",
+          "block_idx": 36,
+          "level": 2,
+          "page_idx": 1,
+          "sentences": [
+            "• There are total 10 calendar holidays for the year 2026, equally divided into fixed and optional holidays."
+          ],
+          "tag": "list_item"
+        },
+        {
+          "bbox": [
+            107.3,
+            384.48,
+            431.77,
+            398.40000000000003
+          ],
+          "block_class": "cls_3",
+          "block_idx": 37,
+          "level": 2,
+          "page_idx": 1,
+          "sentences": [
+            "• Team Members are requested honour the Fixed Public holidays."
+          ],
+          "tag": "list_item"
+        },
+        {
+          "bbox": [
+            107.3,
+            416.16,
+            536.2,
+            449.28
+          ],
+          "block_class": "cls_3",
+          "block_idx": 38,
+          "level": 2,
+          "page_idx": 1,
+          "sentences": [
+            "• Team Members can avail any 5-optional leaves from the list of Optional Public Holiday in the calendar Year 2026."
+          ],
+          "tag": "list_item"
+        },
+        {
+          "bbox": [
+            107.3,
+            465.84,
+            524.17,
+            498.96
+          ],
+          "block_class": "cls_3",
+          "block_idx": 39,
+          "level": 2,
+          "page_idx": 1,
+          "sentences": [
+            "• Supervisor/ Team leads can use their discretion on the Holidays as per the business exigencies and personal requirement of the TeamMember."
+          ],
+          "tag": "list_item"
+        },
+        {
+          "bbox": [
+            107.3,
+            515.52,
+            507.9,
+            548.6400000000001
+          ],
+          "block_class": "cls_3",
+          "block_idx": 40,
+          "level": 2,
+          "page_idx": 1,
+          "sentences": [
+            "• All the optional holidays can be availed only after the approval is received by the manager on KEKA portal."
+          ],
+          "tag": "list_item"
+        },
+        {
+          "bbox": [
+            107.3,
+            558.96,
+            538.62,
+            592.08
+          ],
+          "block_class": "cls_3",
+          "block_idx": 41,
+          "level": 2,
+          "page_idx": 1,
+          "sentences": [
+            "• Team members are requested to plan leaves and holidays ahead of time so as to avoid situations where leave needs to be compulsorily taken at the end of the year."
+          ],
+          "tag": "list_item"
+        },
+        {
+          "bbox": [
+            227.38,
+            619.68,
+            398.27,
+            655.68
+          ],
+          "block_class": "cls_6",
+          "block_idx": 42,
+          "level": 0,
+          "page_idx": 1,
+          "sentences": [
+            "Thank-You"
+          ],
+          "tag": "header"
+        }
+      ],
+      "styles": [
+        {
+          "class_name": "cls_0",
+          "style": {
+            "font-family": "RedHatDisplay-Bold",
+            "font-size": 25.92,
+            "font-style": "normal",
+            "font-weight": 600,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        },
+        {
+          "class_name": "cls_1",
+          "style": {
+            "font-family": "RedHatDisplay-Bold",
+            "font-size": 15.839999999999998,
+            "font-style": "normal",
+            "font-weight": 600,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        },
+        {
+          "class_name": "cls_2",
+          "style": {
+            "font-family": "RedHatDisplay-Bold",
+            "font-size": 17.28,
+            "font-style": "normal",
+            "font-weight": 600,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        },
+        {
+          "class_name": "cls_3",
+          "style": {
+            "font-family": "RedHatDisplay-Regular",
+            "font-size": 15.839999999999998,
+            "font-style": "normal",
+            "font-weight": 400,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        },
+        {
+          "class_name": "cls_4",
+          "style": {
+            "font-family": "RedHatDisplay-Regular",
+            "font-size": 17.28,
+            "font-style": "normal",
+            "font-weight": 400,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        },
+        {
+          "class_name": "cls_5",
+          "style": {
+            "font-family": "ArialMT",
+            "font-size": 20.04,
+            "font-style": "normal",
+            "font-weight": 400,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        },
+        {
+          "class_name": "cls_6",
+          "style": {
+            "font-family": "RedHatDisplay-Regular",
+            "font-size": 51.84,
+            "font-style": "normal",
+            "font-weight": 400,
+            "text-align": "left",
+            "text-transform": "none"
+          }
+        }
+      ]
+    }
+  },
+  "status": 200
+}

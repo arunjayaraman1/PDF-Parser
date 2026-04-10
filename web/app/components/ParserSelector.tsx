@@ -3,10 +3,12 @@
 import { useAppStore } from "../lib/store";
 import { getRecommendations } from "../lib/api";
 import { cn } from "../lib/utils";
-import { Check, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { Check, Loader2, Wand2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 
 export function ParserSelector() {
+  const [expandedRecommendations, setExpandedRecommendations] = useState<Record<string, boolean>>({});
   const {
     description,
     file,
@@ -46,6 +48,17 @@ export function ParserSelector() {
   };
 
   const isDisabled = isLoading || !file || !description.trim();
+  const capabilityNoteByParser: Record<string, string> = {
+    unstructured: "Strong capability for layout-aware text and mixed document sections.",
+    tabula: "Strong capability for extracting table-focused data cleanly.",
+    suryaocr: "Strong capability for OCR on scanned or image-based PDF pages.",
+    pdfplumber: "Strong capability for digital PDFs with selectable text.",
+    mineru: "Strong capability for structured extraction in complex layouts.",
+  };
+
+  const getCapabilityNote = (parserName: string) =>
+    capabilityNoteByParser[parserName.toLowerCase()] ??
+    "Strong capability for general-purpose PDF extraction.";
 
   return (
     <div className="space-y-4">
@@ -82,53 +95,90 @@ export function ParserSelector() {
             exit={{ opacity: 0, height: 0 }}
             className="grid gap-3 pt-2"
           >
-            <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider px-1">
-              Recommended parsers
-            </p>
-            {recommendations.map((parser, idx) => (
-              <motion.div
-                key={parser.name}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                onClick={() => toggleParser(parser.name)}
-                className={cn(
-                  "group flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200",
-                  selectedParsers.includes(parser.name)
-                    ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/40"
-                    : "bg-zinc-950/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/30"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200",
-                      selectedParsers.includes(parser.name)
-                        ? "bg-indigo-500/20 text-indigo-400"
-                        : "bg-zinc-800/50 text-zinc-500 group-hover:bg-zinc-800 group-hover:text-zinc-400"
-                    )}
-                  >
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div className="space-y-0.5">
-                    <h4 className="font-semibold text-zinc-200">{parser.name}</h4>
-                    <p className="text-xs text-zinc-500 line-clamp-1">{parser.reason}</p>
-                  </div>
-                </div>
+            <div className="px-1 space-y-0.5">
+              <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                Ranked recommendations
+              </p>
+              <p className="text-[11px] text-zinc-600 leading-snug">
+                1 = best match for your use case (fit, speed, and task)
+              </p>
+            </div>
+            {recommendations.map((parser, idx) => {
+              const rank = parser.rank ?? idx + 1;
+              const cap = getCapabilityNote(parser.name);
+              const isExpanded = Boolean(expandedRecommendations[parser.name]);
+              const reasonText = parser.reason.trim();
+              const shouldShowToggle = reasonText.length > 200;
+              return (
+              <motion.div key={`${rank}-${parser.name}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.1 }}>
                 <div
+                  onClick={() => toggleParser(parser.name)}
                   className={cn(
-                    "w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200",
+                    "group flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all duration-200",
                     selectedParsers.includes(parser.name)
-                      ? "bg-indigo-500 text-white"
-                      : "bg-zinc-800 border border-zinc-700 group-hover:border-zinc-600"
+                      ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border-indigo-500/40"
+                      : "bg-zinc-950/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/30"
                   )}
                 >
-                  {selectedParsers.includes(parser.name) && (
-                    <Check className="w-4 h-4" />
-                  )}
+                  <div className="flex items-start gap-3 flex-1">
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 shrink-0",
+                        selectedParsers.includes(parser.name)
+                          ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/20"
+                          : "bg-zinc-800 text-zinc-300 border border-zinc-700 group-hover:border-zinc-600"
+                      )}
+                      aria-label={`Rank ${rank}`}
+                    >
+                      {rank}
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <h4 className="font-semibold text-zinc-200">{parser.name}</h4>
+                      <p
+                        className={cn(
+                          "text-xs text-zinc-400 leading-relaxed",
+                          !isExpanded && shouldShowToggle && "line-clamp-3"
+                        )}
+                      >
+                        {reasonText}
+                      </p>
+                      <p className="text-[11px] text-zinc-600 leading-relaxed">
+                        Capability: {cap}
+                      </p>
+                      {shouldShowToggle && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedRecommendations((prev) => ({
+                              ...prev,
+                              [parser.name]: !prev[parser.name],
+                            }));
+                          }}
+                          className="text-xs font-medium text-cyan-400 hover:text-cyan-300 transition-colors"
+                        >
+                          {isExpanded ? "Show less" : "Show more"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div
+                    className={cn(
+                      "w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0 ml-3",
+                      selectedParsers.includes(parser.name)
+                        ? "bg-indigo-500 text-white"
+                        : "bg-zinc-800 border border-zinc-700 group-hover:border-zinc-600"
+                    )}
+                  >
+                    {selectedParsers.includes(parser.name) && (
+                      <Check className="w-4 h-4" />
+                    )}
+                  </div>
                 </div>
               </motion.div>
-            ))}
+            );
+            })}
           </motion.div>
         )}
       </AnimatePresence>

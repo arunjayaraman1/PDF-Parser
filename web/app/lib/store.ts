@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ParserRecommendation, PageResult } from "./api";
+import type { ParserRecommendation, PageResult, ParserRunMeta } from "./api";
 
 interface AppState {
   description: string;
@@ -19,6 +19,8 @@ interface AppState {
 
   parseResults: Record<string, PageResult[]>;
   setParseResults: (results: Record<string, PageResult[]>) => void;
+  parserMeta: Record<string, ParserRunMeta>;
+  setParserMeta: (meta: Record<string, ParserRunMeta>) => void;
 
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -43,6 +45,7 @@ const initialState = {
   recommendations: [],
   selectedParsers: [],
   parseResults: {},
+  parserMeta: {},
   isLoading: false,
   error: null,
   currentPage: 1,
@@ -71,6 +74,7 @@ export const useAppStore = create<AppState>((set) => ({
     }),
 
   setParseResults: (parseResults) => set({ parseResults }),
+  setParserMeta: (parserMeta) => set({ parserMeta }),
 
   setIsLoading: (isLoading) => set({ isLoading }),
 

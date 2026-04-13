@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from routes import llm, parse, upload
+from routes import artifacts, llm, parse, upload
 from utils.file_handler import get_file_path
 
 logging.basicConfig(
@@ -44,6 +44,7 @@ app.add_middleware(
 app.include_router(upload.router)
 app.include_router(llm.router)
 app.include_router(parse.router)
+app.include_router(artifacts.router)
 
 
 @app.get("/health")

@@ -21,6 +21,8 @@ export interface PageResult {
 export interface ParserRunMeta {
   execution_time_ms: number;
   output_files: string[];
+  /** True when native outputs were saved under uploads/artifacts and ZIP download is available */
+  artifacts_available?: boolean;
 }
 
 export interface ParseResponse {
@@ -85,4 +87,26 @@ export async function parsePdf(
   }
 
   return res.json();
+}
+
+export async function downloadParserArtifactsZip(
+  fileId: string,
+  parserName: string
+): Promise<Blob> {
+  const url = `${API_BASE}/artifacts/${encodeURIComponent(fileId)}/${encodeURIComponent(
+    parserName
+  )}/download`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    const detail = error.detail;
+    const msg =
+      typeof detail === "string"
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: { msg?: string }) => d.msg ?? "").join("; ")
+          : "Download failed";
+    throw new Error(msg || "Download failed");
+  }
+  return res.blob();
 }

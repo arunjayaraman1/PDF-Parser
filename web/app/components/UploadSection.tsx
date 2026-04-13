@@ -1,16 +1,24 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Upload, FileText, X, FileArchive } from "lucide-react";
+import { Upload, X, FileArchive } from "lucide-react";
 import { useAppStore } from "../lib/store";
 import { uploadPdf } from "../lib/api";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+const SAMPLE_PDF_URL = "/samples/Meta-Harness.pdf";
+const SAMPLE_PDF_NAME = "Meta-Harness.pdf";
+
+const showSamplePdfOption =
+  process.env.NODE_ENV === "development" ||
+  process.env.NEXT_PUBLIC_SHOW_SAMPLE_PDF === "true";
+
 export function UploadSection() {
   const { description, setDescription, file, setFile, setError, setIsLoading, isLoading } =
     useAppStore();
   const [isDragging, setIsDragging] = useState(false);
+  const [isFetchingSample, setIsFetchingSample] = useState(false);
 
   const handleUpload = useCallback(
     async (uploadedFile: File) => {
@@ -55,6 +63,34 @@ export function UploadSection() {
     },
     [handleUpload]
   );
+
+  const handleLoadSample = useCallback(async () => {
+    if (file || isLoading || isFetchingSample) return;
+    setError(null);
+    setIsFetchingSample(true);
+    try {
+      const res = await fetch(SAMPLE_PDF_URL);
+      if (!res.ok) {
+        setError(
+          "Sample PDF not found. Copy Meta-Harness.pdf from the project root to web/public/samples/Meta-Harness.pdf."
+        );
+        return;
+      }
+      const blob = await res.blob();
+      const sampleFile = new File([blob], SAMPLE_PDF_NAME, {
+        type: "application/pdf",
+      });
+      await handleUpload(sampleFile);
+    } catch {
+      setError(
+        "Could not load sample PDF. Copy Meta-Harness.pdf to web/public/samples/Meta-Harness.pdf."
+      );
+    } finally {
+      setIsFetchingSample(false);
+    }
+  }, [file, isLoading, isFetchingSample, handleUpload, setError]);
+
+  const uploadBusy = isLoading || isFetchingSample;
 
   return (
     <div className="space-y-5">
@@ -148,7 +184,7 @@ export function UploadSection() {
           />
         </div>
         
-        {isLoading && (
+        {uploadBusy && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -156,11 +192,26 @@ export function UploadSection() {
           >
             <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-zinc-900 border border-zinc-800">
               <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm text-zinc-300">Uploading...</span>
+              <span className="text-sm text-zinc-300">
+                {isFetchingSample && !isLoading ? "Loading sample…" : "Uploading..."}
+              </span>
             </div>
           </motion.div>
         )}
       </div>
+
+      {showSamplePdfOption && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={handleLoadSample}
+            disabled={!!file || uploadBusy}
+            className="text-xs text-indigo-400/90 hover:text-indigo-300 disabled:opacity-40 disabled:pointer-events-none underline-offset-2 hover:underline transition-colors"
+          >
+            Use sample PDF (Meta-Harness)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

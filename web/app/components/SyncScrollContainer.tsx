@@ -13,23 +13,50 @@ import {
   Link2Off,
   Maximize2,
   Minimize2,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { PdfViewer } from "./PdfViewer";
 import { Column } from "./Column";
 import { ParserOutput } from "./ParserOutput";
 import { motion } from "framer-motion";
+import { downloadParserArtifactsZip } from "../lib/api";
 
 const ACCENT_COLORS = ["cyan", "indigo", "emerald", "amber", "rose"] as const;
 
 export function SyncScrollContainer() {
-  const { parseResults, fileId, currentPage, setCurrentPage } = useAppStore();
+  const { parseResults, fileId, currentPage, setCurrentPage, parserMeta, setError } =
+    useAppStore();
   const pdfRef = useRef<HTMLDivElement>(null);
   const outputRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [activeScroll, setActiveScroll] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [syncEnabled, setSyncEnabled] = useState(true);
   const [fullViewParser, setFullViewParser] = useState<string | null>(null);
+  const [downloadingParser, setDownloadingParser] = useState<string | null>(null);
   const isScrolling = useRef(false);
+
+  const handleDownloadArtifacts = useCallback(
+    async (parserName: string) => {
+      if (!fileId) return;
+      setDownloadingParser(parserName);
+      setError(null);
+      try {
+        const blob = await downloadParserArtifactsZip(fileId, parserName);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${parserName}_outputs.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Download failed");
+      } finally {
+        setDownloadingParser(null);
+      }
+    },
+    [fileId, setError]
+  );
 
   const parsers = Object.keys(parseResults);
   const effectiveFullViewParser =
@@ -295,7 +322,7 @@ export function SyncScrollContainer() {
               icon={<Sparkles className="w-4 h-4" />}
               accentColor={accentColor}
             >
-              <div className="p-2 border-b border-zinc-800/50">
+              <div className="p-2 border-b border-zinc-800/50 flex flex-col gap-2">
                 <button
                   onClick={() =>
                     setFullViewParser((prev) => (prev === parserName ? null : parserName))
@@ -316,6 +343,38 @@ export function SyncScrollContainer() {
                     <>
                       <Maximize2 className="w-3.5 h-3.5" />
                       Full view
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadArtifacts(parserName)}
+                  disabled={
+                    !fileId ||
+                    !parserMeta[parserName]?.artifacts_available ||
+                    downloadingParser === parserName
+                  }
+                  className={cn(
+                    "w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs rounded-lg border transition-all duration-200",
+                    parserMeta[parserName]?.artifacts_available
+                      ? "bg-zinc-800/30 border-zinc-700/30 text-zinc-300 hover:bg-zinc-700/30"
+                      : "bg-zinc-900/20 border-zinc-800/40 text-zinc-600 cursor-not-allowed"
+                  )}
+                  title={
+                    parserMeta[parserName]?.artifacts_available
+                      ? "Download ZIP of native parser outputs"
+                      : "No native output files were saved for this parser"
+                  }
+                >
+                  {downloadingParser === parserName ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Preparing…
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3.5 h-3.5" />
+                      Download outputs
                     </>
                   )}
                 </button>

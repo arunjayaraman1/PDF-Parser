@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import uuid
 from pathlib import Path
 
@@ -9,6 +10,14 @@ import aiofiles
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+ARTIFACTS_DIR = UPLOAD_DIR / "artifacts"
+
+
+def safe_artifact_parser_slug(parser_name: str) -> str:
+    """Filesystem-safe folder name for uploads/artifacts/{file_id}/{slug}/."""
+    s = re.sub(r"[^a-z0-9]+", "_", parser_name.lower()).strip("_")
+    return s or "parser"
 
 FILE_ID_MAP: dict[str, str] = {}
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Literal
 
 from models.schemas import PageResult, ParseRequest, ParseResponse, ParserRunMeta
-from utils.file_handler import get_file_path
+from utils.file_handler import ARTIFACTS_DIR, get_file_path, safe_artifact_parser_slug
 
 logger = logging.getLogger(__name__)
 
@@ -134,17 +134,42 @@ def _discover_extracted_outputs(
     return deduped
 
 
+def _artifact_root_dir(primary_extracted: Path) -> Path | None:
+    """Directory containing native parser outputs (typically *_extracted/)."""
+    parent = primary_extracted.parent.resolve()
+    return parent if parent.is_dir() else None
+
+
+def _persist_parser_artifacts(
+    file_id: str, parser_name: str, artifact_root: Path | None
+) -> bool:
+    if not artifact_root or not artifact_root.is_dir():
+        return False
+    slug = safe_artifact_parser_slug(parser_name)
+    dest = ARTIFACTS_DIR / file_id / slug
+    try:
+        ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(artifact_root, dest)
+        return True
+    except OSError as e:
+        logger.warning("Failed to persist parser artifacts: %s", e)
+        return False
+
+
 def _run_parser_script(
     parser_name: str,
     pdf_path: Path,
     work_dir: Path,
     mineru_profile: MineruProfile | None = None,
-) -> tuple[list[PageResult], ParserRunMeta]:
+) -> tuple[list[PageResult], ParserRunMeta, Path | None]:
     script_name = PARSER_FILES.get(parser_name.lower())
     if not script_name:
         return (
             [PageResult(page=1, text=f"[ERROR] Unknown parser: {parser_name}")],
             ParserRunMeta(execution_time_ms=0, output_files=[]),
+            None,
         )
 
     script_path = ROOT_DIR / script_name
@@ -152,6 +177,7 @@ def _run_parser_script(
         return (
             [PageResult(page=1, text=f"[ERROR] Parser script not found: {script_name}")],
             ParserRunMeta(execution_time_ms=0, output_files=[]),
+            None,
         )
 
     logger.info(f"Running parser {parser_name} on {pdf_path.name}")
@@ -212,6 +238,7 @@ def _run_parser_script(
             return (
                 [PageResult(page=1, text=f"[ERROR] {result.stderr[:1000]}")],
                 ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+                None,
             )
 
         extracted_files = _discover_extracted_outputs(
@@ -230,6 +257,7 @@ def _run_parser_script(
                     )
                 ],
                 ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+                None,
             )
 
         content = extracted_files[0].read_text(encoding="utf-8", errors="replace")
@@ -262,10 +290,12 @@ def _run_parser_script(
             str(p.relative_to(work_dir)) if p.is_relative_to(work_dir) else p.name
             for p in extracted_files
         ]
+        artifact_root = _artifact_root_dir(extracted_files[0])
         logger.info(f"Parser {parser_name} completed with {len(pages)} page entries")
         return (
             pages,
             ParserRunMeta(execution_time_ms=elapsed_ms, output_files=output_files),
+            artifact_root,
         )
 
     except subprocess.TimeoutExpired:
@@ -279,6 +309,7 @@ def _run_parser_script(
                 )
             ],
             ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+            None,
         )
     except Exception as e:
         logger.error(f"Parser {parser_name} error: {e}")
@@ -286,6 +317,7 @@ def _run_parser_script(
         return (
             [PageResult(page=1, text=f"[ERROR] {str(e)}")],
             ParserRunMeta(execution_time_ms=elapsed_ms, output_files=[]),
+            None,
         )
 
 
@@ -310,9 +342,11 @@ async def parse_pdf(request: ParseRequest) -> ParseResponse:
                     if parser_name.lower() == "mineru"
                     else None
                 )
-                results, meta = _run_parser_script(
+                results, meta, artifact_root = _run_parser_script(
                     parser_name, pdf_path, work_path, mineru_profile=profile
                 )
+                if _persist_parser_artifacts(request.file_id, parser_name, artifact_root):
+                    meta = meta.model_copy(update={"artifacts_available": True})
                 parser_results[parser_name] = results
                 parser_meta[parser_name] = meta
             except Exception as e:
@@ -323,6 +357,7 @@ async def parse_pdf(request: ParseRequest) -> ParseResponse:
                 parser_meta[parser_name] = ParserRunMeta(
                     execution_time_ms=0,
                     output_files=[],
+                    artifacts_available=False,
                 )
 
     return ParseResponse(parsers=parser_results, parser_meta=parser_meta)

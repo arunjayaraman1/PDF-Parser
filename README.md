@@ -5,10 +5,10 @@ A full-stack application for uploading PDFs, getting **ranked** AI parser recomm
 ## Architecture
 
 ```
-web/              Next.js 16 frontend (React 19, Tailwind, Zustand)
+web/              Next.js 16.2.2 frontend (React 19.2.4, Tailwind 4, Zustand)
 backend/          FastAPI API (upload, recommend, parse)
-main_parsers/     Primary/ranked parser scripts (pdfium, marker, docling, doctr, llmsherpha)
-*.py              Legacy parser scripts still supported by backend registry
+main_parsers/     Primary ranked parser scripts (pdfium, marker, docling, doctr, llmsherpha)
+Unused-Parsers/   Legacy parser scripts (backward-compatible)
 parsers/          Shared helper modules (e.g. paddle_ocr_core.py)
 ```
 
@@ -25,7 +25,7 @@ Primary/main parsers:
 - `docling`
 - `doctr`
 
-Legacy/backward-compatible parsers still wired in backend:
+Legacy/backward-compatible parsers (stored in `Unused-Parsers/`):
 - `pdfplumber`, `camelot`, `pdfminer`, `unstructured`, `mineru`, `grobif`, `layoutparser`,
   `paddleocr`, `easyocr`, `tesseract`, `rapidocr`, `suryaocr`, `tabula`, `liteparse`
 
@@ -103,10 +103,12 @@ Open **http://localhost:3000** in your browser.
 
 | Method | Path | Description |
 |--------|------|-------------|
+| `GET` | `/` | API root with endpoint info |
 | `POST` | `/upload` | Upload a PDF, receive a `file_id` |
 | `POST` | `/llm/recommend` | Get AI parser recommendations |
 | `POST` | `/parse` | Run selected parsers on the uploaded PDF |
 | `GET` | `/files/{file_id}` | Serve an uploaded PDF |
+| `GET` | `/artifacts/{file_id}/{parser_name}/download` | Download parser output artifacts as ZIP |
 | `GET` | `/health` | Health check |
 | `GET` | `/docs` | Swagger UI |
 
@@ -146,7 +148,8 @@ Open **http://localhost:3000** in your browser.
   "parser_meta": {
     "docling": {
       "execution_time_ms": 1432,
-      "output_files": ["sample_extracted/extracted.md"]
+      "output_files": ["sample_extracted/extracted.md"],
+      "artifacts_available": true
     }
   }
 }
@@ -196,6 +199,11 @@ GROBID is amd64-only; on Apple Silicon it runs under emulation (`platform: linux
 | `PADDLEOCR_USE_GPU` | paddleocr | `1` for GPU |
 | `LITEPARSE_OCR` | liteparse | `0` to disable OCR (faster) |
 | `LITEPARSE_DPI` | liteparse | Render DPI (default `150`) |
+| `PDFIUM_SOURCE` | pdfium | Path to PDF (auto-set by API) |
+| `CAMELOT_SOURCE` | camelot | Path to PDF (auto-set by API) |
+| `MARKER_SOURCE` | marker | Path to PDF (auto-set by API) |
+| `DOCLING_SOURCE` | docling | Path to PDF (auto-set by API) |
+| `DOCTR_SOURCE` | doctr | Path to PDF (auto-set by API) |
 
 ## Project Structure
 
@@ -210,30 +218,64 @@ pdf-auto/
 │   ├── routes/
 │   │   ├── upload.py              # POST /upload
 │   │   ├── llm.py                 # POST /llm/recommend
-│   │   └── parse.py               # POST /parse
+│   │   ├── parse.py               # POST /parse
+│   │   └── artifacts.py           # GET /artifacts/download
 │   ├── services/
 │   │   ├── llm_service.py         # Groq LLM recommendation logic
 │   │   └── parser_service.py      # Subprocess runner + output discovery
-│   └── utils/
-│       └── file_handler.py        # Upload storage
+│   ├── utils/
+│   │   └── file_handler.py        # Upload storage
+│   ├── uploads/                   # Uploaded PDF files
+│   └── tmp-marker-check/          # Temp parser work directories
 ├── web/
-│   ├── package.json               # Next.js 16 + React 19
+│   ├── package.json               # Next.js 16.2.2 + React 19.2.4 + Tailwind 4
+│   ├── next.config.ts             # Next.js configuration
 │   └── app/
 │       ├── page.tsx               # Main page
-│       ├── components/            # UI components
+│       ├── layout.tsx             # Root layout
+│       ├── globals.css            # Global styles
+│       ├── components/
+│       │   ├── UploadSection.tsx  # PDF upload UI
+│       │   ├── ParserSelector.tsx # Parser selection UI
+│       │   ├── ParseButton.tsx    # Parse execution button
+│       │   ├── PdfViewer.tsx      # PDF rendering component
+│       │   ├── Column.tsx         # Parser results column
+│       │   ├── ParserOutput.tsx   # Parser text output display
+│       │   └── SyncScrollContainer.tsx # Synchronized scroll container
 │       └── lib/
 │           ├── api.ts             # Backend API client
-│           └── store.ts           # Zustand state
+│           ├── store.ts           # Zustand state management
+│           └── utils.ts            # Utility functions
 ├── parsers/
 │   └── paddle_ocr_core.py        # PaddleOCR pipeline helper
-├── main_parsers/                  # primary ranked parser scripts
-├── *.py                           # legacy parser driver scripts
+├── main_parsers/                  # Primary ranked parser scripts
+│   ├── pdfium.py
+│   ├── llmsherpha.py
+│   ├── marker.py
+│   ├── docling.py
+│   └── doctr.py
+├── Unused-Parsers/                # Legacy parsers (backward-compatible)
+│   ├── pdfplumber.py
+│   ├── camelot.py
+│   ├── pdfminer_runner.py
+│   ├── unstructured.py
+│   ├── MinorU.py
+│   ├── grobif.py
+│   ├── layoutparser.py
+│   ├── paddle.py
+│   ├── easyocr.py
+│   ├── tesseract.py
+│   ├── rapidocr.py
+│   ├── suryaocr.py
+│   ├── tabula.py
+│   └── liteparse.py
+├── marker_image.py               # Standalone marker image script
+├── marker_output/                 # Marker parser output directory
+├── output files/                  # Sample output files
 ├── docker-compose.parsers.yml     # nlm-ingestor + GROBID
 ├── docker-compose.grobid.yml      # GROBID standalone
 ├── docker-compose.nlm-ingestor.yml # nlm-ingestor standalone
 └── README.md
-```
-
 ## License
 
 Private project.

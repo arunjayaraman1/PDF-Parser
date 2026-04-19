@@ -1,0 +1,28 @@
+# ── Core API ─────────────────────────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+aiofiles>=23.2.1
+pydantic>=2.9.0
+python-dotenv>=1.0.0
+requests>=2.32.0
+groq>=0.4.0
+
+# ── Parsers bundled in the slim image ────────────────────────────────────────
+# pdfium  — fast baseline, no GPU, plain text
+pypdfium2>=4.0.0
+
+# docling — structure-aware markdown (best for RAG), CPU-only
+docling>=2.0.0
+
+# pdfplumber — table-aware text extraction
+pdfplumber>=0.11.0
+
+# pypdf   — fallback, always available
+pypdf>=4.0.0
+PyMuPDF>=1.24.0
+
+# ── Utilities used by parser scripts ─────────────────────────────────────────
+Pillow>=10.0.0
+pandas>=2.0.0
+psutil>=5.9.0

@@ -1,0 +1,22 @@
+services:
+  # ── PDF-Parser API ────────────────────────────────────────────────────────
+  pdf-parser:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Required for the /llm/recommend endpoint (Groq-powered parser suggestions)
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+    volumes:
+      # Persist uploaded PDFs and parser artifacts across container restarts
+      - pdf_uploads:/app/backend/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pdf_uploads:

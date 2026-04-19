@@ -1,82 +1,239 @@
-# PDF Parser Comparison System
+# PDF-Parser
 
-A full-stack application for uploading PDFs, getting **ranked** AI parser recommendations, and comparing extraction results side-by-side.
-
-## Architecture
+A standalone microservice and comparison UI for PDF text extraction.
 
 ```
-web/              Next.js 16.2.2 frontend (React 19.2.4, Tailwind 4, Zustand)
-backend/          FastAPI API (upload, recommend, parse)
-main_parsers/     Primary ranked parser scripts (pdfium, marker, docling, doctr, llmsherpha)
-Unused-Parsers/   Legacy parser scripts (backward-compatible)
-parsers/          Shared helper modules (e.g. paddle_ocr_core.py)
+Browser / RAG-Module
+       │  POST /upload  +  POST /parse
+       ▼
+┌─────────────────────────────────────────────────────┐
+│                  PDF-Parser API (FastAPI)            │
+│  /upload → store PDF, return file_id                │
+│  /parse  → run parser subprocess, return pages      │
+│  /llm/recommend → Groq ranks best parsers for use   │
+└─────────────────────────────────────────────────────┘
+       │  subprocess per parser
+       ▼
+┌──────────────────────────────────────────────────────┐
+│  docling │ marker │ pdfium │ doctr │ llmsherpha │ … │
+└──────────────────────────────────────────────────────┘
 ```
 
-The backend runs each parser as a **subprocess** (`python <script>.py` with `cwd` set to a temp directory), discovers `extracted.txt` / `extracted.md` output, and returns:
-- page-wise text (`parsers`)
-- per-parser run metadata (`parser_meta`) including execution time and output files.
+## Parser registry
 
-## Parser Registry (runnable names)
+### Primary parsers (bundled in slim Docker image)
 
-Primary/main parsers:
-- `pdfium`
-- `llmsherpha` (alias supported: `llmsherpa`)
-- `marker`
-- `docling`
-- `doctr`
+| Name | Library | Output | Speed | Best for |
+|------|---------|--------|-------|---------|
+| `docling` | docling | Structured Markdown | 1–3 s/page | RAG pipelines, tables, headings |
+| `pdfium` | pypdfium2 | Plain text | < 10 ms/page | Large PDFs, speed-critical |
+| `pdfplumber` | pdfplumber | Markdown + tables | 0.5–1 s/page | Table-heavy documents |
 
-Legacy/backward-compatible parsers (stored in `Unused-Parsers/`):
-- `pdfplumber`, `camelot`, `pdfminer`, `unstructured`, `mineru`, `grobif`, `layoutparser`,
-  `paddleocr`, `easyocr`, `tesseract`, `rapidocr`, `suryaocr`, `tabula`, `liteparse`
+### Additional parsers (require full install or GPU)
 
-## Quick Start
+| Name | Library | Notes |
+|------|---------|-------|
+| `marker` | marker-pdf | Best quality markdown; slow; GPU recommended |
+| `doctr` | python-doctr | OCR + bounding boxes; GPU recommended |
+| `llmsherpha` | llmsherpa | Hierarchical JSON; requires nlm-ingestor service |
+| `mineru` | mineru | MinerU CLI; outputs MD + JSON + images |
+| `pdfminer` | pdfminer.six | Layout-aware text |
+| `unstructured` | unstructured | Element-based extraction |
+| `camelot` | camelot-py | Table-focused extraction |
+| `grobif` | grobid-client-python | Academic papers (TEI XML); requires GROBID service |
+| `tesseract` | pytesseract | OCR via Tesseract binary |
+| `paddleocr` | paddleocr | OCR; GPU optional |
+| `easyocr` | easyocr | OCR; GPU optional |
+| `rapidocr` | rapidocr | Fast OCR |
+| `suryaocr` | surya-ocr | High-quality OCR |
+| `tabula` | tabula-py | Java-based table extraction |
+| `liteparse` | liteparse | Node.js CLI integration |
+
+---
+
+## Repository layout
+
+```
+PDF-Parser/
+├── backend/
+│   ├── main.py                  # FastAPI app entry point
+│   ├── requirements.txt         # Full dependency list (all parsers)
+│   ├── requirements.slim.txt    # Slim list (docling + pdfium only, used in Docker)
+│   ├── models/
+│   │   └── schemas.py           # Pydantic request/response models
+│   ├── routes/
+│   │   ├── upload.py            # POST /upload
+│   │   ├── parse.py             # POST /parse
+│   │   ├── llm.py               # POST /llm/recommend
+│   │   └── artifacts.py         # GET /artifacts/{file_id}/{parser}/download
+│   ├── services/
+│   │   ├── parser_service.py    # Subprocess runner + page splitting
+│   │   └── llm_service.py       # Groq LLM recommendation logic
+│   └── utils/
+│       └── file_handler.py      # Upload storage + file_id mapping
+├── main_parsers/
+│   ├── docling.py               # Docling parser script
+│   ├── marker.py                # Marker parser script
+│   ├── pdfium.py                # Pdfium parser script
+│   ├── doctr.py                 # Doctr parser script
+│   └── llmsherpha.py            # LLMSherpa parser script
+├── Unused-Parsers/              # Legacy parser scripts (14 parsers)
+├── parsers/
+│   └── paddle_ocr_core.py       # PaddleOCR shared helper
+├── web/                         # Next.js comparison UI
+│   ├── package.json
+│   └── app/
+│       ├── page.tsx             # Main comparison page
+│       ├── components/          # UploadSection, ParserSelector, PdfViewer, …
+│       └── lib/
+│           ├── api.ts           # Backend API client
+│           └── store.ts         # Zustand state management
+├── Dockerfile                   # Slim production image
+├── docker-compose.yml           # Standalone service on port 8000
+├── docker-compose.parsers.yml   # nlm-ingestor (5010) + GROBID (8070)
+├── docker-compose.grobid.yml    # GROBID standalone
+└── docker-compose.nlm-ingestor.yml  # nlm-ingestor standalone
+```
+
+---
+
+## Option A — Docker (recommended)
+
+The Docker image uses `requirements.slim.txt` — it bundles **docling** and **pdfium** only. This keeps the image at ~2 GB instead of 15+ GB. For `marker`, `doctr`, or GPU parsers use Option B.
 
 ### Prerequisites
 
-- Python 3.12+
-- Node.js 18+
-- Docker (for GROBID and nlm-ingestor services)
-- A [Groq API key](https://console.groq.com/) for parser recommendations
+| Tool | Notes |
+|------|-------|
+| Docker Desktop 4.x+ | https://www.docker.com/products/docker-desktop |
+| Groq API key | https://console.groq.com/ — used for `/llm/recommend` only (not required for parsing) |
 
-### 1. Clone and set up the backend
-
-```bash
-cd pdf-auto
-python -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
-```
-
-### 2. Configure environment
+### 1. Enter the directory
 
 ```bash
-cp backend/.env.example backend/.env   # or create manually
+cd PDF-Parser
 ```
 
-Add your Groq key:
+### 2. Build and start
 
-```
-GROQ_API_KEY=gsk_your_key_here
+```bash
+# Basic start (Groq key optional — only needed for parser recommendations)
+GROQ_API_KEY=gsk_... docker compose up --build
 ```
 
-### 3. Start external services (optional, for grobif / llmsherpa)
+Or set it in a `.env` file next to `docker-compose.yml`:
+
+```bash
+echo "GROQ_API_KEY=gsk_..." > .env
+docker compose up --build
+```
+
+### 3. Verify
+
+```bash
+curl http://localhost:8000/health
+# → {"status":"ok","service":"pdf-parser-comparison"}
+
+curl http://localhost:8000/
+# → {"message":"PDF Parser Comparison System API","docs":"/docs",...}
+```
+
+Swagger UI: http://localhost:8000/docs
+
+### 4. Optional — start nlm-ingestor and GROBID
+
+Required only if you want to use the `llmsherpha` or `grobif` parsers:
 
 ```bash
 docker compose -f docker-compose.parsers.yml up -d
+# nlm-ingestor → http://localhost:5010
+# GROBID       → http://localhost:8070 (runs under emulation on Apple Silicon)
 ```
 
-This starts:
-- **nlm-ingestor** on `http://localhost:5010` (for llmsherpa parser)
-- **GROBID** on `http://localhost:8070` (for grobif parser)
+### 5. Stopping
 
-### 4. Run the backend
+```bash
+docker compose down          # stop, keep uploads volume
+docker compose down -v       # stop and delete uploads
+```
+
+### Docker rebuild rules
+
+| What changed | Command needed |
+|---|---|
+| Python source / `requirements.slim.txt` | `docker compose build && docker compose up -d` |
+| `GROQ_API_KEY` or other env var only | `docker compose up -d` (no rebuild) |
+
+---
+
+## Option B — Local (without Docker)
+
+Use this when you need parsers not in the slim image (`marker`, `doctr`, GPU parsers) or want to develop the service itself.
+
+### Prerequisites
+
+| Tool | Version | Notes |
+|------|---------|-------|
+| Python | 3.11+ | 3.12 recommended |
+| Node.js | 18+ | Only if running the comparison UI |
+| Java 8+ | optional | Required by `tabula-py` |
+| Tesseract | optional | Required by `tesseract` parser — `brew install tesseract` |
+| Docker | optional | For GROBID and nlm-ingestor sidecar services |
+
+### 1. Create virtual environment
+
+```bash
+cd PDF-Parser
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+```
+
+### 2. Install dependencies
+
+**Slim install** (docling + pdfium + pdfplumber — enough for RAG-Module integration):
+
+```bash
+pip install -r backend/requirements.slim.txt
+```
+
+**Full install** (all parsers — takes 10–20 min, downloads large models):
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+> Some packages in `requirements.txt` (`paddleocr`, `easyocr`, `surya-ocr`) download model weights on first use and require several GB of disk space.
+
+### 3. Configure environment
+
+Create `backend/.env`:
+
+```bash
+cp backend/.env.example backend/.env    # if .env.example exists
+# or create manually:
+echo "GROQ_API_KEY=gsk_..." > backend/.env
+```
+
+Environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GROQ_API_KEY` | — | Groq API key — only used by `POST /llm/recommend` |
+| `GROBID_SERVER` | `http://localhost:8070` | GROBID URL (for `grobif` parser) |
+| `LLMSHERPA_API_URL` | `http://127.0.0.1:5010/api/parseDocument?renderFormat=all` | nlm-ingestor URL (for `llmsherpha` parser) |
+
+### 4. Start the API
 
 ```bash
 cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-### 5. Run the frontend
+API available at http://localhost:8000 — Swagger UI at http://localhost:8000/docs.
+
+### 5. Start the comparison UI (optional)
+
+In a separate terminal:
 
 ```bash
 cd web
@@ -84,198 +241,170 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:3000** in your browser.
+UI available at http://localhost:3000.
 
-## How It Works
+### 6. Optional sidecar services
 
-1. **Upload** a PDF through the web UI.
-2. **Describe** your use case (e.g. "extract tables from a financial report").
-3. The backend calls **Groq** (LLM) to return the **top 3 ranked parsers** with:
-   - `rank` (1 = best match)
-   - use-case-specific reason (fit + tradeoffs)
-4. **Select** parsers (auto-selected from recommendations, or pick manually).
-5. Click **Parse** to run selected parsers. Results include:
-   - page-wise extraction text
-   - per-parser execution time + output file list
-6. In Comparison View, each parser column supports **Full view** (2-pane mode: Original PDF + selected parser result).
+```bash
+# Both nlm-ingestor + GROBID
+docker compose -f docker-compose.parsers.yml up -d
 
-## API Endpoints
+# nlm-ingestor only (for llmsherpha parser)
+docker compose -f docker-compose.nlm-ingestor.yml up -d
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/` | API root with endpoint info |
-| `POST` | `/upload` | Upload a PDF, receive a `file_id` |
-| `POST` | `/llm/recommend` | Get AI parser recommendations |
-| `POST` | `/parse` | Run selected parsers on the uploaded PDF |
-| `GET` | `/files/{file_id}` | Serve an uploaded PDF |
-| `GET` | `/artifacts/{file_id}/{parser_name}/download` | Download parser output artifacts as ZIP |
-| `GET` | `/health` | Health check |
-| `GET` | `/docs` | Swagger UI |
-
-### Parse request example
-
-```json
-{
-  "file_id": "abc-123",
-  "parsers": ["docling", "mineru", "pdfplumber"],
-  "mineru_profile": "fast"
-}
+# GROBID only (for grobif parser)
+docker compose -f docker-compose.grobid.yml up -d
 ```
 
-`mineru_profile` is optional (`fast` / `balanced` / `quality`) and only applies when `mineru` is selected.
+---
 
-### Recommend response example
+## API reference
 
-```json
-{
-  "parsers": [
-    { "name": "docling", "reason": "Best semantic fit for RAG...", "rank": 1 },
-    { "name": "marker", "reason": "Higher fidelity but slower...", "rank": 2 },
-    { "name": "pdfium", "reason": "Fast fallback for plain text...", "rank": 3 }
-  ]
-}
+### `POST /upload`
+
+Upload a PDF and receive a `file_id` to use in subsequent calls.
+
+```bash
+curl -X POST http://localhost:8000/upload \
+  -F "file=@report.pdf"
 ```
 
-### Parse response example
+Response:
+```json
+{"file_id": "a1b2c3d4-...", "file_path": "...", "filename": "report.pdf"}
+```
 
+### `POST /parse`
+
+Run one or more parsers on an uploaded PDF.
+
+```bash
+curl -X POST http://localhost:8000/parse \
+  -H "Content-Type: application/json" \
+  -d '{
+    "file_id": "a1b2c3d4-...",
+    "parsers": ["docling", "pdfium"]
+  }'
+```
+
+Request body:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `file_id` | string | ID returned by `/upload` |
+| `parsers` | string[] | List of parser names to run |
+| `mineru_profile` | string | `fast` / `balanced` / `quality` — only applies to `mineru` parser |
+
+Response:
 ```json
 {
   "parsers": {
     "docling": [
-      { "page": 1, "text": "..." }
+      {"page": 1, "text": "# Document Title\n\nIntroduction..."},
+      {"page": 2, "text": "## Section 2\n\nContent..."}
     ]
   },
   "parser_meta": {
     "docling": {
       "execution_time_ms": 1432,
-      "output_files": ["sample_extracted/extracted.md"],
+      "output_files": ["report_extracted/extracted.md"],
       "artifacts_available": true
     }
   }
 }
 ```
 
-## MinerU Run Profiles
+### `POST /llm/recommend`
 
-When using the **mineru** parser, you can choose a speed/quality trade-off:
+Get AI-ranked parser recommendations for your use case.
 
-| Profile | Backend | Method | Formula | Table | Lang |
-|---------|---------|--------|---------|-------|------|
-| **fast** | pipeline | txt | off | off | en |
-| **balanced** | pipeline | auto | off | on | en |
-| **quality** | hybrid-auto-engine | auto | on | on | ch |
-
-Set via the UI dropdown or `mineru_profile` in the API request.
-
-## Docker Compose Files
-
-| File | Services | Ports |
-|------|----------|-------|
-| `docker-compose.parsers.yml` | nlm-ingestor + GROBID | 5010, 8070 |
-| `docker-compose.nlm-ingestor.yml` | nlm-ingestor only | 5010 |
-| `docker-compose.grobid.yml` | GROBID only | 8070 |
-
-GROBID is amd64-only; on Apple Silicon it runs under emulation (`platform: linux/amd64` is set).
-
-## Environment Variables
-
-### Backend (`.env` or shell)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GROQ_API_KEY` | (required) | Groq API key for LLM recommendations |
-
-### Parser-specific (optional)
-
-| Variable | Parser | Description |
-|----------|--------|-------------|
-| `GROBID_SERVER` | grobif | GROBID URL (default `http://localhost:8070`) |
-| `LLMSHERPA_API_URL` | llmsherpha / llmsherpa | nlm-ingestor URL (default `http://127.0.0.1:5010/api/parseDocument?renderFormat=all`) |
-| `MINERU_BACKEND` | mineru | `pipeline` / `hybrid-auto-engine` etc. |
-| `MINERU_METHOD` | mineru | `auto` / `txt` / `ocr` |
-| `MINERU_SOURCE` | mineru | Path to PDF (auto-set by API) |
-| `PADDLEOCR_SOURCE` | paddleocr | Path to PDF (auto-set by API) |
-| `PADDLEOCR_LANG` | paddleocr | Language code (default `en`) |
-| `PADDLEOCR_USE_GPU` | paddleocr | `1` for GPU |
-| `LITEPARSE_OCR` | liteparse | `0` to disable OCR (faster) |
-| `LITEPARSE_DPI` | liteparse | Render DPI (default `150`) |
-| `PDFIUM_SOURCE` | pdfium | Path to PDF (auto-set by API) |
-| `CAMELOT_SOURCE` | camelot | Path to PDF (auto-set by API) |
-| `MARKER_SOURCE` | marker | Path to PDF (auto-set by API) |
-| `DOCLING_SOURCE` | docling | Path to PDF (auto-set by API) |
-| `DOCTR_SOURCE` | doctr | Path to PDF (auto-set by API) |
-
-## Project Structure
-
+```bash
+curl -X POST http://localhost:8000/llm/recommend \
+  -H "Content-Type: application/json" \
+  -d '{"description": "extract tables from a financial report for RAG"}'
 ```
-pdf-auto/
-├── backend/
-│   ├── main.py                    # FastAPI app
-│   ├── requirements.txt           # Python dependencies
-│   ├── .env                       # Groq API key (gitignored)
-│   ├── models/
-│   │   └── schemas.py             # Pydantic models
-│   ├── routes/
-│   │   ├── upload.py              # POST /upload
-│   │   ├── llm.py                 # POST /llm/recommend
-│   │   ├── parse.py               # POST /parse
-│   │   └── artifacts.py           # GET /artifacts/download
-│   ├── services/
-│   │   ├── llm_service.py         # Groq LLM recommendation logic
-│   │   └── parser_service.py      # Subprocess runner + output discovery
-│   ├── utils/
-│   │   └── file_handler.py        # Upload storage
-│   ├── uploads/                   # Uploaded PDF files
-│   └── tmp-marker-check/          # Temp parser work directories
-├── web/
-│   ├── package.json               # Next.js 16.2.2 + React 19.2.4 + Tailwind 4
-│   ├── next.config.ts             # Next.js configuration
-│   └── app/
-│       ├── page.tsx               # Main page
-│       ├── layout.tsx             # Root layout
-│       ├── globals.css            # Global styles
-│       ├── components/
-│       │   ├── UploadSection.tsx  # PDF upload UI
-│       │   ├── ParserSelector.tsx # Parser selection UI
-│       │   ├── ParseButton.tsx    # Parse execution button
-│       │   ├── PdfViewer.tsx      # PDF rendering component
-│       │   ├── Column.tsx         # Parser results column
-│       │   ├── ParserOutput.tsx   # Parser text output display
-│       │   └── SyncScrollContainer.tsx # Synchronized scroll container
-│       └── lib/
-│           ├── api.ts             # Backend API client
-│           ├── store.ts           # Zustand state management
-│           └── utils.ts            # Utility functions
-├── parsers/
-│   └── paddle_ocr_core.py        # PaddleOCR pipeline helper
-├── main_parsers/                  # Primary ranked parser scripts
-│   ├── pdfium.py
-│   ├── llmsherpha.py
-│   ├── marker.py
-│   ├── docling.py
-│   └── doctr.py
-├── Unused-Parsers/                # Legacy parsers (backward-compatible)
-│   ├── pdfplumber.py
-│   ├── camelot.py
-│   ├── pdfminer_runner.py
-│   ├── unstructured.py
-│   ├── MinorU.py
-│   ├── grobif.py
-│   ├── layoutparser.py
-│   ├── paddle.py
-│   ├── easyocr.py
-│   ├── tesseract.py
-│   ├── rapidocr.py
-│   ├── suryaocr.py
-│   ├── tabula.py
-│   └── liteparse.py
-├── marker_image.py               # Standalone marker image script
-├── marker_output/                 # Marker parser output directory
-├── output files/                  # Sample output files
-├── docker-compose.parsers.yml     # nlm-ingestor + GROBID
-├── docker-compose.grobid.yml      # GROBID standalone
-├── docker-compose.nlm-ingestor.yml # nlm-ingestor standalone
-└── README.md
-## License
 
-Private project.
+Response:
+```json
+{
+  "parsers": [
+    {"name": "docling", "reason": "Best semantic fit for RAG...", "rank": 1},
+    {"name": "marker",  "reason": "Higher fidelity tables...",   "rank": 2},
+    {"name": "pdfium",  "reason": "Fast fallback for plain text", "rank": 3}
+  ]
+}
+```
+
+Requires `GROQ_API_KEY`. Falls back to `[pdfium, docling, marker]` if the key is missing.
+
+### `GET /artifacts/{file_id}/{parser_name}/download`
+
+Download the raw parser output (markdown, JSON, images) as a ZIP archive.
+
+```bash
+curl -O http://localhost:8000/artifacts/a1b2c3d4-.../docling/download
+```
+
+### `GET /health`
+
+```bash
+curl http://localhost:8000/health
+# → {"status":"ok","service":"pdf-parser-comparison"}
+```
+
+---
+
+## Integration with RAG-Module
+
+RAG-Module can delegate PDF parsing to this service automatically. Configure RAG-Module's `.env`:
+
+```env
+DEFAULT_PDF_PARSER=pdf_service
+PDF_PARSER_SERVICE_URL=http://localhost:8000
+PDF_PARSER_SERVICE_PARSER=docling
+```
+
+When RAG-Module runs in Docker and PDF-Parser runs on the host:
+
+```env
+PDF_PARSER_SERVICE_URL=http://host.docker.internal:8000
+```
+
+RAG-Module will then call:
+1. `POST /upload` — send the PDF bytes, receive `file_id`
+2. `POST /parse` — run `docling` (or whichever `PDF_PARSER_SERVICE_PARSER` is set to), receive page text
+3. Concatenate pages → chunk → embed → store in pgvector
+
+---
+
+## MinerU profiles
+
+When `mineru` is selected, pass `mineru_profile` to control the speed/quality tradeoff:
+
+| Profile | Backend | Method | Formula | Tables | Use when |
+|---------|---------|--------|---------|--------|---------|
+| `fast` | pipeline | txt | off | off | Quick extraction, large files |
+| `balanced` | pipeline | auto | off | on | General use (default) |
+| `quality` | hybrid-auto-engine | auto | on | on | Research papers, complex layouts |
+
+---
+
+## Adding a new parser
+
+1. Create `main_parsers/myparser.py`. The script must:
+   - Read the PDF path from the `MYPARSER_SOURCE` env var
+   - Write output to `{stem}_extracted/extracted.md` (or `extracted.txt`) in the current working directory
+   - Use `--- Page N / Total ---` headers to separate pages (optional but recommended)
+   - Exit with code 0 on success
+
+2. Register it in `backend/services/parser_service.py`:
+   ```python
+   PARSER_FILES = {
+       ...
+       "myparser": "main_parsers/myparser.py",
+   }
+   ```
+
+3. Install the required library in your virtual environment (or add to `requirements.slim.txt` for Docker).
+
+That's it — the API automatically discovers and runs the script.

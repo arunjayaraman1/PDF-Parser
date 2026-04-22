@@ -226,6 +226,49 @@ AVAILABLE_PARSERS = [
         "fallback_to": None,
         "backup_fallback": None,
         "confidence": "Medium"
+    },
+    {
+        "name": "opendataloader",
+        "ocr": "Yes",
+        "ocr_required": True,
+        "speed": "2–5s/page",
+        "latency_ms": 3500,
+        "output": "Markdown + JSON + HTML + PDF",
+        "output_types": ["markdown", "json", "text", "html", "pdf", "markdown-with-html", "markdown-with-images"],
+        "tables": "Good",
+        "table_score": 80,
+        "formats": ["pdf"],
+        "llm_score": 85,
+        "quality_score": 88,
+        "document_type_support": {
+            "digital": "High",
+            "scanned": "High",
+            "complex_layout": "High"
+        },
+        "use_case_optimal": "Multi-format output, data extraction",
+        "select_when": "Need multiple output formats (markdown, HTML, JSON)",
+        "avoid_when": "Simple text extraction only",
+        "failure_rate": "2–4%",
+        "failure_rate_numeric": 0.03,
+        "cost_per_1k_pages": 0.25,
+        "memory_mb_per_page": 20,
+        "gpu_required": False,
+        "api_required": False,
+        "offline_supported": True,
+        "batch_optimized": True,
+        "strengths": [
+            "Multiple output formats",
+            "High-quality markdown",
+            "Image extraction"
+        ],
+        "limitations": [
+            "Moderate speed",
+            "Memory usage"
+        ],
+        "ideal_page_range": [1, 500],
+        "fallback_to": "docling",
+        "backup_fallback": "marker",
+        "confidence": "High"
     }
 ]
 # Meta entries in AVAILABLE_PARSERS that must not be returned as runnable parser names.

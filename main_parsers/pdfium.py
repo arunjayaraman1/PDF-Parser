@@ -8,7 +8,7 @@ import pypdfium2 as pdfium
 
 def main() -> None:
     # Backend runner sets PDFIUM_SOURCE for per-request temp-dir execution.
-    pdf_path_str = os.getenv("PDFIUM_SOURCE", "Holiday 2026.pdf")
+    pdf_path_str = os.getenv("PDFIUM_SOURCE", "meta.pdf")
     pdf_path = Path(pdf_path_str).resolve()
     base_name = pdf_path.stem
     output_dir = Path(f"{base_name}_extracted")

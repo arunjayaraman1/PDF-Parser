@@ -29,7 +29,7 @@ def _resolve_pdf() -> Path:
         if p.exists():
             return p
         raise FileNotFoundError(f"MARKER_SOURCE does not exist: {p}")
-    matches = sorted(Path.cwd().glob("*.pdf"))
+    matches = sorted(Path.cwd().glob("meta.pdf"))
     if matches:
         return matches[0]
     raise FileNotFoundError("No PDF found. Set MARKER_SOURCE or place a PDF in cwd.")

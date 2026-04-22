@@ -42,7 +42,7 @@ _METHODS = frozenset({"auto", "txt", "ocr"})
 
 
 def _pick_pdf(cwd: Path) -> Path:
-    pdf = cwd / "Holiday 2026.pdf"
+    pdf = cwd / "meta.pdf"
     if pdf.exists():
         return pdf
     matches = sorted(cwd.glob("*.pdf"))

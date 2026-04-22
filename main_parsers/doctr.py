@@ -15,7 +15,7 @@ from doctr.models import ocr_predictor
 
 
 def _resolve_pdf() -> Path:
-    raw = os.environ.get("DOCTR_SOURCE", "").strip()
+    raw = os.environ.get("DOCTR_SOURCE", "meta.pdf").strip()
     if raw:
         p = Path(raw).resolve()
         if p.exists():

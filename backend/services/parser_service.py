@@ -26,6 +26,7 @@ PARSER_FILES = {
     "marker":     "main_parsers/marker.py",
     "docling":    "main_parsers/docling.py",
     "doctr":      "main_parsers/doctr.py",
+    "opendataloader": "main_parsers/opendataloader.py",
     # --- other parsers kept for backwards compatibility ---
     "pdfplumber":   "pdfplumber.py",
     "camelot":      "Camelot.py",
@@ -213,6 +214,8 @@ def _run_parser_script(
             run_env["LLMSHERPA_SOURCE"] = str(work_pdf.resolve())
         if parser_name.lower() == "pdfium":
             run_env["PDFIUM_SOURCE"] = str(work_pdf.resolve())
+        if parser_name.lower() == "opendataloader":
+            run_env["OPENDATALOADER_SOURCE"] = str(work_pdf.resolve())
         if parser_name.lower() == "camelot":
             run_env["CAMELOT_SOURCE"] = str(work_pdf.resolve())
         if parser_name.lower() == "marker":

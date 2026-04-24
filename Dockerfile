@@ -1,12 +1,13 @@
 # ── PDF-Parser backend (slim — docling + pdfium + pdfplumber) ────────────────
 FROM python:3.11-slim
 
-# System deps needed by docling / PyMuPDF / Pillow
+# System deps needed by docling / PyMuPDF / Pillow / opendataloader-pdf (Java 17)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
         libgomp1 \
         poppler-utils \
+        openjdk-21-jre-headless \
         && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -32,6 +33,9 @@ RUN pip install --no-cache-dir --timeout 120 \
 
 # Stage 2: docling (large, downloaded separately so a timeout only retries this layer)
 RUN pip install --no-cache-dir --timeout 300 "docling>=2.0.0"
+
+# Stage 3: opendataloader-pdf (requires Java 17)
+RUN pip install --no-cache-dir --timeout 300 "opendataloader-pdf>=2.0.0"
 
 # Copy the full project (backend code + parser scripts)
 COPY backend/   ./backend/

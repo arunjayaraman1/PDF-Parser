@@ -15,7 +15,7 @@ Browser / RAG-Module
        │  subprocess per parser
        ▼
 ┌──────────────────────────────────────────────────────┐
-│  docling │ marker │ pdfium │ doctr │ llmsherpha │ … │
+│  docling │ pdfium │ pdfplumber │ opendataloader │ … │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -28,6 +28,7 @@ Browser / RAG-Module
 | `docling` | docling | Structured Markdown | 1–3 s/page | RAG pipelines, tables, headings |
 | `pdfium` | pypdfium2 | Plain text | < 10 ms/page | Large PDFs, speed-critical |
 | `pdfplumber` | pdfplumber | Markdown + tables | 0.5–1 s/page | Table-heavy documents |
+| `opendataloader` | opendataloader-pdf | Markdown + JSON + HTML | 3–5 s/page | Multi-format output, RAG |
 
 ### Additional parsers (require full install or GPU)
 
@@ -76,7 +77,8 @@ PDF-Parser/
 │   ├── marker.py                # Marker parser script
 │   ├── pdfium.py                # Pdfium parser script
 │   ├── doctr.py                 # Doctr parser script
-│   └── llmsherpha.py            # LLMSherpa parser script
+│   ├── llmsherpha.py            # LLMSherpa parser script
+│   └── opendataloader.py        # OpenDataLoader parser script
 ├── Unused-Parsers/              # Legacy parser scripts (14 parsers)
 ├── parsers/
 │   └── paddle_ocr_core.py       # PaddleOCR shared helper
@@ -99,7 +101,7 @@ PDF-Parser/
 
 ## Option A — Docker (recommended)
 
-The Docker image uses `requirements.slim.txt` — it bundles **docling** and **pdfium** only. This keeps the image at ~2 GB instead of 15+ GB. For `marker`, `doctr`, or GPU parsers use Option B.
+The Docker image uses `requirements.slim.txt` — it bundles **docling**, **pdfium**, **pdfplumber**, and **opendataloader**. This keeps the image at ~2.1 GB instead of 15+ GB. For `marker`, `doctr`, or GPU parsers use Option B.
 
 ### Prerequisites
 
@@ -176,7 +178,8 @@ Use this when you need parsers not in the slim image (`marker`, `doctr`, GPU par
 |------|---------|-------|
 | Python | 3.11+ | 3.12 recommended |
 | Node.js | 18+ | Only if running the comparison UI |
-| Java 8+ | optional | Required by `tabula-py` |
+| Java | 11+ | Required by `opendataloader-pdf` |
+| Java | 8+ | optional | Required by `tabula-py` |
 | Tesseract | optional | Required by `tesseract` parser — `brew install tesseract` |
 | Docker | optional | For GROBID and nlm-ingestor sidecar services |
 
@@ -190,7 +193,7 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 
 ### 2. Install dependencies
 
-**Slim install** (docling + pdfium + pdfplumber — enough for RAG-Module integration):
+**Slim install** (docling + pdfium + pdfplumber + opendataloader — enough for RAG-Module integration):
 
 ```bash
 pip install -r backend/requirements.slim.txt

@@ -6,7 +6,7 @@ import os
 from typing import Optional
 
 from dotenv import load_dotenv
-from groq import Groq
+from openai import OpenAI
 
 from models.schemas import ParserRecommendation, RecommendRequest, RecommendResponse
 from services.parser_service import PARSER_FILES
@@ -331,7 +331,7 @@ _SCALAR_PROMPT_KEYS = (
 
 
 def _format_parser_for_prompt(p: dict) -> str:
-    """Serialize one AVAILABLE_PARSERS entry for the Groq prompt (rich schema-safe)."""
+    """Serialize one AVAILABLE_PARSERS entry for the LLM prompt (rich schema-safe)."""
     name = p.get("name", "?")
     lines: list[str] = [f"- {name}:"]
 
@@ -367,14 +367,21 @@ def get_parser_list() -> str:
     return "\n\n".join(_format_parser_for_prompt(p) for p in AVAILABLE_PARSERS)
 
 
-class GroqLLMClient:
+class OpenRouterLLMClient:
     def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or os.getenv("GROQ_API_KEY")
-        self.client = Groq(api_key=self.api_key) if self.api_key else None
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.client = OpenAI(
+            api_key=self.api_key,
+            base_url="https://openrouter.ai/api/v1",
+            default_headers={
+                "HTTP-Referer": "https://github.com/PDF-Parser",
+                "X-Title": "PDF-Parser",
+            },
+        ) if self.api_key else None
 
     async def get_recommendations(self, description: str) -> list[ParserRecommendation]:
         if not self.client:
-            logger.error("No Groq API key configured")
+            logger.error("No OpenRouter API key configured")
             return self._get_error_response()
 
         parser_list = get_parser_list()
@@ -405,7 +412,7 @@ Exactly 3 entries; ranks must be 1, 2, and 3 with distinct parsers. Do not inclu
 
         try:
             response = self.client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="meta-llama/llama-3.1-8b-instruct",
                 messages=[
                     {
                         "role": "system",
@@ -480,16 +487,16 @@ Exactly 3 entries; ranks must be 1, 2, and 3 with distinct parsers. Do not inclu
             ]
 
             logger.info(
-                f"Groq recommended {len(parsers)} parsers: "
+                f"OpenRouter recommended {len(parsers)} parsers: "
                 f"{[(p.rank, p.name) for p in parsers]}"
             )
             return parsers
 
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse Groq response as JSON: {e}")
+            logger.error(f"Failed to parse OpenRouter response as JSON: {e}")
             return self._get_error_response()
         except Exception as e:
-            logger.error(f"Groq API error: {e}")
+            logger.error(f"OpenRouter API error: {e}")
             return self._get_error_response()
 
     def _get_error_response(self) -> list[ParserRecommendation]:
@@ -512,13 +519,13 @@ Exactly 3 entries; ranks must be 1, 2, and 3 with distinct parsers. Do not inclu
         ]
 
 
-_llm_client: Optional[GroqLLMClient] = None
+_llm_client: Optional[OpenRouterLLMClient] = None
 
 
-def get_llm_client() -> GroqLLMClient:
+def get_llm_client() -> OpenRouterLLMClient:
     global _llm_client
     if _llm_client is None:
-        _llm_client = GroqLLMClient()
+        _llm_client = OpenRouterLLMClient()
     return _llm_client
 
 

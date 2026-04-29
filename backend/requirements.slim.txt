@@ -6,7 +6,7 @@ aiofiles>=23.2.1
 pydantic>=2.9.0
 python-dotenv>=1.0.0
 requests>=2.32.0
-groq>=0.4.0
+openai>=1.0.0
 
 # ── Parsers bundled in the slim image ────────────────────────────────────────
 # pdfium  — fast baseline, no GPU, plain text

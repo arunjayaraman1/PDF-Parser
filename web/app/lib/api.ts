@@ -23,6 +23,8 @@ export interface ParserRunMeta {
   output_files: string[];
   /** True when native outputs were saved under uploads/artifacts and ZIP download is available */
   artifacts_available?: boolean;
+  /** True when extracted.json is available for this parser */
+  json_available?: boolean;
 }
 
 export interface ParseResponse {
@@ -87,6 +89,20 @@ export async function parsePdf(
   }
 
   return res.json();
+}
+
+export async function fetchParserArtifactFile(
+  fileId: string,
+  parserName: string,
+  filename: string
+): Promise<string> {
+  const url = `${API_BASE}/artifacts/${encodeURIComponent(fileId)}/${encodeURIComponent(parserName)}/file/${encodeURIComponent(filename)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to fetch file");
+  }
+  return res.text();
 }
 
 export async function downloadParserArtifactsZip(

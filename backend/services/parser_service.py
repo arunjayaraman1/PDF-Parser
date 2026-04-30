@@ -350,6 +350,10 @@ async def parse_pdf(request: ParseRequest) -> ParseResponse:
                 )
                 if _persist_parser_artifacts(request.file_id, parser_name, artifact_root):
                     meta = meta.model_copy(update={"artifacts_available": True})
+                    slug = safe_artifact_parser_slug(parser_name)
+                    json_artifact = ARTIFACTS_DIR / request.file_id / slug / "extracted.json"
+                    if json_artifact.exists():
+                        meta = meta.model_copy(update={"json_available": True})
                 parser_results[parser_name] = results
                 parser_meta[parser_name] = meta
             except Exception as e:

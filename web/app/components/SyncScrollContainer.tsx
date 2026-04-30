@@ -379,7 +379,13 @@ export function SyncScrollContainer() {
                   )}
                 </button>
               </div>
-              <ParserOutput pages={pages} currentPage={currentPage} />
+              <ParserOutput
+                pages={pages}
+                currentPage={currentPage}
+                fileId={fileId}
+                parserName={parserName}
+                jsonAvailable={parserMeta[parserName]?.json_available}
+              />
             </Column>
           );
         })}

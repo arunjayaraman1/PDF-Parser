@@ -34,6 +34,9 @@ interface AppState {
   mineruProfile: "fast" | "quality" | "balanced" | null;
   setMineruProfile: (p: "fast" | "quality" | "balanced" | null) => void;
 
+  activeTab: "parser" | "highlighter";
+  setActiveTab: (tab: "parser" | "highlighter") => void;
+
   reset: () => void;
 }
 
@@ -50,6 +53,7 @@ const initialState = {
   error: null,
   currentPage: 1,
   mineruProfile: null,
+  activeTab: "parser" as const,
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -83,6 +87,8 @@ export const useAppStore = create<AppState>((set) => ({
   setCurrentPage: (currentPage) => set({ currentPage }),
 
   setMineruProfile: (mineruProfile) => set({ mineruProfile }),
+
+  setActiveTab: (activeTab) => set({ activeTab }),
 
   reset: () => set(initialState),
 }));

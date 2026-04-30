@@ -18,7 +18,7 @@ total_pages = len(pdf_reader.pages)
 opendataloader_pdf.convert(
     input_path=input_path,
     output_dir="output",
-    format=["markdown"],
+    format=["markdown", "json"],
     markdown_page_separator=f"--- Page %page-number% / {total_pages} ---",
 )
 
@@ -38,3 +38,9 @@ if images_dir.exists():
         shutil.copytree(images_dir, dest_images, dirs_exist_ok=True)
     else:
         shutil.copytree(images_dir, dest_images)
+
+json_file = Path(f"output/{stem}.json")
+if json_file.exists():
+    (extracted_dir / "extracted.json").write_text(
+        json_file.read_text(encoding="utf-8"), encoding="utf-8"
+    )

@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 
 from utils.file_handler import ARTIFACTS_DIR, get_file_path, safe_artifact_parser_slug
 
@@ -23,6 +23,28 @@ def _zip_tree(root: Path) -> bytes:
                 arcname = path.relative_to(root)
                 zf.write(path, arcname=str(arcname))
     return buf.getvalue()
+
+
+@router.get("/{file_id}/{parser_name}/file/{filename}")
+async def get_parser_artifact_file(
+    file_id: str, parser_name: str, filename: str
+) -> FileResponse:
+    """Serve a single artifact file inline (e.g. extracted.json)."""
+    if Path(filename).name != filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    slug = safe_artifact_parser_slug(parser_name)
+    artifact_dir = ARTIFACTS_DIR / file_id / slug
+    file_path = artifact_dir / filename
+
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    if not file_path.resolve().is_relative_to(artifact_dir.resolve()):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    media_type = "application/json" if filename.endswith(".json") else "text/plain"
+    return FileResponse(file_path, media_type=media_type)
 
 
 @router.get("/{file_id}/{parser_name}/download")

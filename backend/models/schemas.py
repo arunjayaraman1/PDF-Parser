@@ -38,6 +38,7 @@ class ParserRunMeta(BaseModel):
     execution_time_ms: int = Field(ge=0)
     output_files: list[str] = Field(default_factory=list)
     artifacts_available: bool = False
+    json_available: bool = False
 
 
 class ParseRequest(BaseModel):

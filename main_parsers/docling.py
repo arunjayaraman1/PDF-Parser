@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import sys
 import time
@@ -57,9 +58,16 @@ def main() -> None:
 
     extracted_file.write_text("\n\n".join(parts), encoding="utf-8")
 
+    json_file = out_dir / "extracted.json"
+    json_file.write_text(
+        json.dumps(doc.export_to_dict(), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
     elapsed = time.perf_counter() - t0
     print("--- Done ---")
     print(f"Output: {extracted_file}")
+    print(f"JSON:   {json_file}")
     print(f"Time: {elapsed:.2f} sec")
 
 

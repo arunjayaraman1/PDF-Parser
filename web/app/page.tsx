@@ -10,11 +10,14 @@ import {
   AlertCircle,
   RotateCcw,
   Hexagon,
+  Highlighter,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { HighlighterView } from "./components/HighlighterView";
+import { cn } from "./lib/utils";
 
 export default function Home() {
-  const { error, setError, isLoading, reset, parseResults } = useAppStore();
+  const { error, setError, isLoading, reset, parseResults, activeTab, setActiveTab } = useAppStore();
 
   return (
     <main className="min-h-screen bg-zinc-950 relative">
@@ -27,13 +30,13 @@ export default function Home() {
       
       <div className="relative z-10">
         <div className="max-w-[1600px] mx-auto px-6 py-8">
-          <motion.header 
+          <motion.header
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center justify-between mb-10"
           >
             <div className="flex items-center gap-4">
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 200, damping: 15 }}
@@ -55,16 +58,49 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={reset}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800/60 rounded-xl transition-all duration-200"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Reset
-            </motion.button>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab('parser')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                    activeTab === 'parser'
+                      ? "bg-indigo-500/20 text-indigo-300 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  <Hexagon className="w-4 h-4" />
+                  PDF Parser
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setActiveTab('highlighter')}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+                    activeTab === 'highlighter'
+                      ? "bg-cyan-500/20 text-cyan-300 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  <Highlighter className="w-4 h-4" />
+                  Highlighter
+                </motion.button>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={reset}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-zinc-400 hover:text-zinc-200 bg-zinc-900/60 hover:bg-zinc-800/80 border border-zinc-800/60 rounded-xl transition-all duration-200"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset
+              </motion.button>
+            </div>
           </motion.header>
 
           {error && (
@@ -85,73 +121,77 @@ export default function Home() {
             </motion.div>
           )}
 
-          <div className="space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20">
-                  <span className="text-sm font-semibold text-indigo-400">1</span>
+          {activeTab === 'highlighter' ? (
+            <HighlighterView />
+          ) : (
+            <div className="space-y-6">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 }}
+                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/20">
+                    <span className="text-sm font-semibold text-indigo-400">1</span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-zinc-100">
+                    Upload & Describe
+                  </h2>
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-100">
-                  Upload & Describe
-                </h2>
-              </div>
-              <UploadSection />
-            </motion.div>
+                <UploadSection />
+              </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20">
-                  <span className="text-sm font-semibold text-cyan-400">2</span>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-500/20">
+                    <span className="text-sm font-semibold text-cyan-400">2</span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-zinc-100">
+                    Select Parsers
+                  </h2>
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-100">
-                  Select Parsers
-                </h2>
-              </div>
-              <ParserSelector />
-            </motion.div>
+                <ParserSelector />
+              </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20">
-                  <span className="text-sm font-semibold text-emerald-400">3</span>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/20">
+                    <span className="text-sm font-semibold text-emerald-400">3</span>
+                  </div>
+                  <h2 className="text-lg font-semibold text-zinc-100">
+                    Run Comparison
+                  </h2>
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-100">
-                  Run Comparison
-                </h2>
-              </div>
-              <ParseButton />
-            </motion.div>
+                <ParseButton />
+              </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <Sparkles className="w-5 h-5 text-amber-400" />
-                <h2 className="text-lg font-semibold text-zinc-100">
-                  Comparison View
-                </h2>
-              </div>
-              <SyncScrollContainer />
-            </motion.div>
-          </div>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="p-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 backdrop-blur-xl shadow-2xl"
+              >
+                <div className="flex items-center gap-3 mb-6">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <h2 className="text-lg font-semibold text-zinc-100">
+                    Comparison View
+                  </h2>
+                </div>
+                <SyncScrollContainer />
+              </motion.div>
+            </div>
+          )}
 
           <motion.footer 
             initial={{ opacity: 0 }}

@@ -7,8 +7,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Required for the /llm/recommend endpoint (Groq-powered parser suggestions)
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Required for the /llm/recommend endpoint (OpenRouter-powered parser suggestions)
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
     volumes:
       # Persist uploaded PDFs and parser artifacts across container restarts
       - pdf_uploads:/app/backend/uploads
@@ -17,6 +17,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # ── Next.js Frontend ──────────────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - pdf-parser
+    environment:
+      - NEXT_PUBLIC_API_URL=http://pdf-parser:8000
 
 volumes:
   pdf_uploads:

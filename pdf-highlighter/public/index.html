@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Highlighter</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 14px 24px;
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    header h1 { font-size: 16px; font-weight: 600; }
+    header span { font-size: 12px; color: #64748b; }
+
+    .workspace { display: flex; flex: 1; overflow: hidden; }
+
+    .sidebar {
+      width: 340px;
+      flex-shrink: 0;
+      background: #1a1d27;
+      border-right: 1px solid #2d3148;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar-section { padding: 20px; border-bottom: 1px solid #2d3148; }
+    .sidebar-section label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #2d3148;
+      border-radius: 8px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.05);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .drop-zone .icon { font-size: 28px; margin-bottom: 8px; }
+    .drop-zone p { font-size: 13px; color: #94a3b8; }
+    .drop-zone .file-name {
+      font-size: 12px;
+      color: #6366f1;
+      margin-top: 6px;
+      font-weight: 500;
+      word-break: break-all;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      padding: 12px;
+      resize: vertical;
+      min-height: 180px;
+      line-height: 1.6;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: #6366f1; }
+    textarea::placeholder { color: #475569; }
+
+    .hint { font-size: 11px; color: #475569; margin-top: 8px; line-height: 1.5; }
+
+    button#highlight-btn {
+      width: 100%;
+      padding: 11px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button#highlight-btn:hover:not(:disabled) { background: #4f52d9; }
+    button#highlight-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #status {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-top: 12px;
+      display: none;
+    }
+    #status.success { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    #status.error   { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+
+    #download-btn {
+      display: none;
+      width: 100%;
+      padding: 10px;
+      background: transparent;
+      color: #4ade80;
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+      text-align: center;
+    }
+    #download-btn:hover { background: rgba(34,197,94,0.08); }
+
+    .viewer {
+      flex: 1;
+      overflow-y: auto;
+      background: #181b26;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      gap: 16px;
+    }
+
+    .viewer-placeholder { margin: auto; text-align: center; color: #334155; }
+    .viewer-placeholder .icon { font-size: 48px; margin-bottom: 12px; }
+    .viewer-placeholder p { font-size: 14px; }
+
+    #pdf-pages canvas {
+      display: block;
+      border-radius: 4px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      max-width: 100%;
+    }
+    .page-wrapper { position: relative; }
+    .page-label {
+      font-size: 11px;
+      color: #475569;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    .viewer-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #181b26;
+      width: 100%;
+      padding: 8px 16px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #2d3148;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .viewer-toolbar.visible { display: flex; }
+    .viewer-toolbar button {
+      background: #2d3148;
+      border: none;
+      color: #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .viewer-toolbar button:hover { background: #3d4260; }
+
+    /* Citations panel */
+    #citations-section { display: none; }
+    #citations-list { display: flex; flex-direction: column; gap: 6px; }
+    .citation-card {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-left: 4px solid var(--citation-color, #facc15);
+      border-radius: 6px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .citation-card:hover { background: #161a26; }
+    .citation-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .citation-index {
+      color: var(--citation-color, #facc15);
+      font-weight: 700;
+      font-family: 'SF Mono', monospace;
+    }
+    .citation-page { color: #64748b; }
+    .citation-content {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .citation-content.empty { font-style: italic; color: #475569; }
+
+    /* Flash marker drawn over the highlighted region when a citation is clicked */
+    .citation-flash {
+      position: absolute;
+      border: 2px solid var(--flash-color, #f97316);
+      background: var(--flash-bg, rgba(249, 115, 22, 0.18));
+      border-radius: 2px;
+      pointer-events: none;
+      animation: citation-pulse 1.5s ease-out forwards;
+      z-index: 5;
+    }
+    @keyframes citation-pulse {
+      0%, 60% { opacity: 1; }
+      100%    { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>PDF Highlighter</h1>
+  <span>PDF.js + OpenRouter</span>
+</header>
+
+<div class="workspace">
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <label>PDF File</label>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="pdf-input" accept=".pdf" />
+        <div class="icon">📄</div>
+        <p>Drop a PDF here or click to browse</p>
+        <div class="file-name" id="file-name"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <label>Input</label>
+      <textarea
+        id="user-input"
+        placeholder="Paste JSON, partial JSON, or describe what to highlight in plain English.
+
+Examples:
+• {&quot;page number&quot;: 2, &quot;bounding box&quot;: [304, 468, 395, 480]}
+• Highlight the abstract on page 1
+• Page 3, the paragraph about Meta-Harness"
+      ></textarea>
+      <p class="hint">Any format accepted — the LLM figures out the coordinates.</p>
+    </div>
+
+    <div class="sidebar-section">
+      <button id="highlight-btn" disabled>
+        <div class="spinner" id="spinner"></div>
+        <span id="btn-label">Highlight</span>
+      </button>
+      <div id="status"></div>
+      <button id="download-btn">⬇ Download Highlighted PDF</button>
+    </div>
+
+    <div class="sidebar-section" id="citations-section">
+      <label>Decoded Citations</label>
+      <div id="citations-list"></div>
+    </div>
+  </aside>
+
+  <main class="viewer" id="viewer">
+    <div class="viewer-toolbar" id="viewer-toolbar">
+      <span id="page-count"></span>
+      <button id="zoom-in">＋</button>
+      <button id="zoom-out">－</button>
+      <span id="zoom-label">100%</span>
+    </div>
+
+    <div class="viewer-placeholder" id="placeholder">
+      <div class="icon">📑</div>
+      <p>Upload a PDF to preview it here</p>
+    </div>
+
+    <div id="pdf-pages"></div>
+  </main>
+</div>
+
+<script type="module">
+  import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs';
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+
+  let currentFile = null;
+  let highlightedBlob = null;
+  let citations = [];
+  let scale = 1.5;
+
+  const dropZone     = document.getElementById('drop-zone');
+  const fileInput    = document.getElementById('pdf-input');
+  const fileNameEl   = document.getElementById('file-name');
+  const userInput    = document.getElementById('user-input');
+  const highlightBtn = document.getElementById('highlight-btn');
+  const spinner      = document.getElementById('spinner');
+  const btnLabel     = document.getElementById('btn-label');
+  const statusEl     = document.getElementById('status');
+  const downloadBtn  = document.getElementById('download-btn');
+  const pdfPages     = document.getElementById('pdf-pages');
+  const placeholder  = document.getElementById('placeholder');
+  const toolbar      = document.getElementById('viewer-toolbar');
+  const pageCountEl  = document.getElementById('page-count');
+  const zoomLabel    = document.getElementById('zoom-label');
+  const citationsSection = document.getElementById('citations-section');
+  const citationsList    = document.getElementById('citations-list');
+
+  fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file?.type === 'application/pdf') loadFile(file);
+  });
+
+  function loadFile(file) {
+    if (!file) return;
+    currentFile = file;
+    fileNameEl.textContent = file.name;
+    highlightBtn.disabled = false;
+    highlightedBlob = null;
+    citations = [];
+    citationsSection.style.display = 'none';
+    citationsList.innerHTML = '';
+    downloadBtn.style.display = 'none';
+    renderPDF(file);
+  }
+
+  async function renderPDF(source) {
+    pdfPages.innerHTML = '';
+    placeholder.style.display = 'none';
+
+    const arrayBuffer = source instanceof Blob ? await source.arrayBuffer() : source;
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+
+    pageCountEl.textContent = `${pdf.numPages} page${pdf.numPages !== 1 ? 's' : ''}`;
+    toolbar.classList.add('visible');
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale });
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page-wrapper';
+      wrapper.id = `page-${i}`;
+      wrapper.dataset.pageNumber = String(i - 1);
+
+      const label = document.createElement('div');
+      label.className = 'page-label';
+      label.textContent = `Page ${i}`;
+
+      const canvasWrap = document.createElement('div');
+      canvasWrap.className = 'canvas-wrap';
+      canvasWrap.style.position = 'relative';
+      canvasWrap.style.display = 'inline-block';
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = viewport.width;
+      canvas.height = viewport.height;
+
+      canvasWrap.appendChild(canvas);
+      wrapper.appendChild(label);
+      wrapper.appendChild(canvasWrap);
+      pdfPages.appendChild(wrapper);
+
+      // Stash viewport on the wrapper so click handlers can do PDF→viewport conversion later.
+      wrapper._viewport = viewport;
+      wrapper._canvasWrap = canvasWrap;
+
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    }
+  }
+
+  document.getElementById('zoom-in').addEventListener('click', () => {
+    scale = Math.min(scale + 0.25, 3);
+    zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+    if (highlightedBlob) renderPDF(highlightedBlob);
+    else if (currentFile) renderPDF(currentFile);
+  });
+  document.getElementById('zoom-out').addEventListener('click', () => {
+    scale = Math.max(scale - 0.25, 0.5);
+    zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+    if (highlightedBlob) renderPDF(highlightedBlob);
+    else if (currentFile) renderPDF(currentFile);
+  });
+
+  highlightBtn.addEventListener('click', async () => {
+    if (!currentFile || !userInput.value.trim()) return;
+
+    setLoading(true);
+    setStatus('');
+    downloadBtn.style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('pdf', currentFile);
+    formData.append('input', userInput.value.trim());
+
+    try {
+      const response = await fetch('/api/highlight', { method: 'POST', body: formData });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(err.error ?? 'Highlight failed');
+      }
+
+      const data = await response.json();
+
+      highlightedBlob = base64ToBlob(data.pdf_base64, 'application/pdf');
+      citations = data.citations ?? [];
+
+      await renderPDF(highlightedBlob);
+      renderCitations(citations);
+
+      setStatus(`Highlighted ${data.highlighted_count}/${data.total_items} region(s).`, 'success');
+
+      const url = URL.createObjectURL(highlightedBlob);
+      downloadBtn.style.display = 'block';
+      downloadBtn.onclick = () => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `highlighted_${currentFile.name}`;
+        a.click();
+      };
+    } catch (err) {
+      setStatus(err.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  function base64ToBlob(b64, type) {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type });
+  }
+
+  function renderCitations(items) {
+    citationsList.innerHTML = '';
+    if (!items.length) {
+      citationsSection.style.display = 'none';
+      return;
+    }
+
+    for (const c of items) {
+      const card = document.createElement('div');
+      card.className = 'citation-card';
+      if (c.color) card.style.setProperty('--citation-color', c.color);
+      card.onclick = () => scrollToCitation(c);
+
+      const head = document.createElement('div');
+      head.className = 'citation-head';
+      head.innerHTML =
+        `<span class="citation-index">[${c.index}]</span>` +
+        `<span class="citation-page">Page ${c.page + 1}</span>`;
+
+      const body = document.createElement('div');
+      body.className = 'citation-content';
+      const text = (c.content ?? '').trim();
+      if (text) {
+        body.textContent = text.length > 240 ? text.slice(0, 240) + '…' : text;
+      } else {
+        body.classList.add('empty');
+        body.textContent = 'No text content';
+      }
+
+      card.appendChild(head);
+      card.appendChild(body);
+      citationsList.appendChild(card);
+    }
+
+    citationsSection.style.display = 'block';
+  }
+
+  function scrollToCitation(citation) {
+    const wrapper = document.getElementById(`page-${citation.page + 1}`);
+    if (!wrapper) return;
+
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const viewport = wrapper._viewport;
+    const canvasWrap = wrapper._canvasWrap;
+    if (!viewport || !canvasWrap || !Array.isArray(citation.bbox_pdf)) return;
+
+    // PDF.js convertToViewportRectangle returns [x1, y1, x2, y2] in viewport (top-left) coords.
+    const [vx1, vy1, vx2, vy2] = viewport.convertToViewportRectangle(citation.bbox_pdf);
+    const left = Math.min(vx1, vx2);
+    const top  = Math.min(vy1, vy2);
+    const width  = Math.abs(vx2 - vx1);
+    const height = Math.abs(vy2 - vy1);
+
+    const flash = document.createElement('div');
+    flash.className = 'citation-flash';
+    flash.style.left   = `${left}px`;
+    flash.style.top    = `${top}px`;
+    flash.style.width  = `${width}px`;
+    flash.style.height = `${height}px`;
+    if (citation.color) {
+      flash.style.setProperty('--flash-color', citation.color);
+      // 8-char hex color with ~28% alpha (modern browsers)
+      flash.style.setProperty('--flash-bg', `${citation.color}48`);
+    }
+
+    canvasWrap.appendChild(flash);
+    setTimeout(() => flash.remove(), 1500);
+  }
+
+  function setLoading(on) {
+    highlightBtn.disabled = on;
+    spinner.style.display = on ? 'block' : 'none';
+    btnLabel.textContent = on ? 'Processing…' : 'Highlight';
+  }
+
+  function setStatus(msg, type = '') {
+    statusEl.textContent = msg;
+    statusEl.className = type;
+    statusEl.style.display = msg ? 'block' : 'none';
+  }
+</script>
+
+</body>
+</html>

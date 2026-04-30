@@ -12,9 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Upgrade pip first to avoid hash-verification bugs in older pip versions
+RUN pip install --upgrade pip
+
 # Install Python dependencies in stages (each layer is cached independently).
 # Stage 1: fast core packages
-RUN pip install --no-cache-dir --timeout 120 \
+RUN pip install --no-cache-dir --timeout 120 --retries 3 \
         fastapi>=0.115.0 \
         "uvicorn[standard]>=0.30.0" \
         python-multipart>=0.0.9 \
@@ -22,7 +25,7 @@ RUN pip install --no-cache-dir --timeout 120 \
         "pydantic>=2.9.0" \
         python-dotenv>=1.0.0 \
         requests>=2.32.0 \
-        "groq>=0.4.0" \
+        "openai>=1.0.0" \
         "pypdfium2>=4.0.0" \
         "pypdf>=4.0.0" \
         "PyMuPDF>=1.24.0" \
@@ -32,10 +35,10 @@ RUN pip install --no-cache-dir --timeout 120 \
         "psutil>=5.9.0"
 
 # Stage 2: docling (large, downloaded separately so a timeout only retries this layer)
-RUN pip install --no-cache-dir --timeout 300 "docling>=2.0.0"
+RUN pip install --no-cache-dir --timeout 300 --retries 3 "docling>=2.0.0"
 
 # Stage 3: opendataloader-pdf (requires Java 17)
-RUN pip install --no-cache-dir --timeout 300 "opendataloader-pdf>=2.0.0"
+RUN pip install --no-cache-dir --timeout 300 --retries 3 "opendataloader-pdf>=2.0.0"
 
 # Copy the full project (backend code + parser scripts)
 COPY backend/   ./backend/

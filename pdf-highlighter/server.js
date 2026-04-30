@@ -9,7 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: resolve(__dirname, '../.env') });
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY ?? '';
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'google/gemini-flash-1.5';
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'openai/gpt-3.5-turbo';
 const PORT = process.env.PORT ?? 4000;
 
 // ---------------------------------------------------------------------------
